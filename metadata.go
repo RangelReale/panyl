@@ -1,13 +1,15 @@
 package panyl
 
 const (
-	Metadata_Structure   = "structure"
-	Metadata_Format      = "format"
-	Metadata_Level       = "level"
-	Metadata_Timestamp   = "ts"
-	Metadata_Message     = "message"
-	Metadata_Application = "application"
-	Metadata_Clean       = "clean" // []string
+	Metadata_Structure           = "structure"
+	Metadata_Format              = "format"
+	Metadata_Level               = "level"
+	Metadata_Timestamp           = "ts"      // time.Time
+	Metadata_TimestampCalculated = "ts_calc" // bool [whether the timestamp was calculated instead of present in the data]
+	Metadata_Message             = "message"
+	Metadata_Application         = "application"
+	Metadata_Clean               = "clean" // []string
+	Metadata_Category            = "category"
 )
 
 const (

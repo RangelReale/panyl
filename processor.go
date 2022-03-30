@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 )
 
 type Processor struct {
@@ -58,6 +59,7 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 	scanner := bufio.NewScanner(r)
 	lineno := 0
 
+	var lastTime time.Time
 	var lines ProcessLines
 
 	for scanner.Scan() {
@@ -145,13 +147,20 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 		if lineProcessed {
 			process.LineNo = lines[lineFound].LineNo
 			process.LineCount = len(lines) - lineFound
+			if lastTime.IsZero() {
+				// try to get the timestamp from the processed line if time is Zero
+				if pts, ok := process.Metadata[Metadata_Timestamp]; ok {
+					lastTime = pts.(time.Time)
+				}
+			}
 			// process previous lines
-			err := p.processResultLines(lines[:lineFound], result)
+			var err error
+			_, err = p.processResultLines(lines[:lineFound], result, lastTime)
 			if err != nil {
 				return err
 			}
 			// process current line
-			err = p.outputResult(process, result)
+			lastTime, err = p.outputResult(process, result, lastTime)
 			if err != nil {
 				return err
 			}
@@ -169,7 +178,8 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 
 				if blockSequence {
 					// process previous lines and leave only the current line
-					err := p.processResultLines(lines[:len(lines)-1], result)
+					var err error
+					lastTime, err = p.processResultLines(lines[:len(lines)-1], result, lastTime)
 					if err != nil {
 						return err
 					}
@@ -181,7 +191,7 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 
 	if len(lines) > 0 {
 		// process any lines left
-		err := p.processResultLines(lines, result)
+		_, err := p.processResultLines(lines, result, lastTime)
 		if err != nil {
 			return err
 		}
@@ -195,23 +205,24 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 }
 
 // processResultLines process previous lines, trying to consolidate using Consolidate plugins, and outputs each result.
-func (p *Processor) processResultLines(lines ProcessLines, result ProcessResult) error {
+func (p *Processor) processResultLines(lines ProcessLines, result ProcessResult, lastTime time.Time) (time.Time, error) {
+	var rts = lastTime
 	startLine := 0
 	for startLine < len(lines) {
 		processed := false
 		for _, pc := range p.pluginConsolidate {
 			consolidateProcess := p.initProcess(lines[startLine].LineNo, "")
 			if ok, topLines, err := pc.Consolidate(lines[startLine:], consolidateProcess); err != nil {
-				return err
+				return time.Time{}, err
 			} else if ok {
 				if topLines > len(lines)-startLine {
-					return fmt.Errorf("Plugin requestd %d top lines but only %d are available", topLines, len(lines)-startLine)
+					return time.Time{}, fmt.Errorf("Plugin requestd %d top lines but only %d are available", topLines, len(lines)-startLine)
 				}
 
 				consolidateProcess.LineCount = topLines
-				err = p.outputResult(consolidateProcess, result)
+				rts, err = p.outputResult(consolidateProcess, result, rts)
 				if err != nil {
-					return err
+					return time.Time{}, err
 				}
 				startLine += topLines
 				processed = true
@@ -220,27 +231,37 @@ func (p *Processor) processResultLines(lines ProcessLines, result ProcessResult)
 		}
 		if !processed {
 			lines[startLine].LineCount = 1
-			err := p.outputResult(lines[startLine], result)
+			var err error
+			rts, err = p.outputResult(lines[startLine], result, rts)
 			if err != nil {
-				return err
+				return time.Time{}, err
 			}
 			startLine++
 		}
 	}
-	return nil
+	return rts, nil
 }
 
 // outputResult post-processes the Process and outputs the result.
-func (p *Processor) outputResult(process *Process, result ProcessResult) error {
+func (p *Processor) outputResult(process *Process, result ProcessResult, lastTime time.Time) (time.Time, error) {
+	// check for timestamp in metadata, add the last one if not available
+	if _, ok := process.Metadata[Metadata_Timestamp]; !ok {
+		process.Metadata[Metadata_Timestamp] = lastTime
+		process.Metadata[Metadata_TimestampCalculated] = true
+	}
+	retTime := process.Metadata[Metadata_Timestamp].(time.Time)
+
 	for _, pp := range p.pluginPostProcess {
 		_, err := pp.PostProcess(process)
 		if err != nil {
-			return err
+			return time.Time{}, err
 		}
 	}
+
 	if p.Logger != nil {
 		p.Logger.LogProcess(process)
 	}
 	result.OnResult(process)
-	return nil
+
+	return retTime, nil
 }

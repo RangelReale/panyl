@@ -10,8 +10,8 @@ import (
 type Process struct {
 	LineNo    int
 	LineCount int
-	Metadata  MapValue
-	Data      MapValue
+	Metadata  MapValue // is ALWAYS non-nil
+	Data      MapValue // is ALWAYS non-nil
 	Line      string
 }
 

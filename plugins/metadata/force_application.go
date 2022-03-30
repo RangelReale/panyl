@@ -7,14 +7,16 @@ import (
 var _ panyl.PluginMetadata = (*ForceApplication)(nil)
 var _ panyl.PluginSequence = (*ForceApplication)(nil)
 
-// ForceApplication adds a Metadata_Application to the process metadata.
+// ForceApplication adds a Metadata_Application to the process metadata if it isn't set already.
 // It also blocks the sequence if the application changes.
 type ForceApplication struct {
 	Application string
 }
 
 func (m *ForceApplication) ExtractMetadata(result *panyl.Process) (bool, error) {
-	result.Metadata[panyl.Metadata_Application] = m.Application
+	if _, ok := result.Metadata[panyl.Metadata_Application]; !ok {
+		result.Metadata[panyl.Metadata_Application] = m.Application
+	}
 	return true, nil
 }
 
