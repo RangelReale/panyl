@@ -16,17 +16,24 @@ type AnsiEscape struct {
 var cleanAnsiEscapeRE = regexp.MustCompile(`(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]`)
 
 func (c AnsiEscape) Clean(result *panyl.Process) (bool, error) {
-	count := 0
-	ret := cleanAnsiEscapeRE.ReplaceAllStringFunc(result.Line, func(s string) string {
-		count++
-		return ""
-	})
-	if count > 0 {
+	if ok, cl := AnsiEscapeString(result.Line); ok {
 		result.Metadata.ListValueAdd(panyl.Metadata_Clean, panyl.MetadataClean_AnsiEscape)
-		result.Line = ret
+		result.Line = cl
 		return true, nil
 	}
 	return false, nil
 }
 
 func (c AnsiEscape) IsPanylPlugin() {}
+
+func AnsiEscapeString(s string) (bool, string) {
+	count := 0
+	ret := cleanAnsiEscapeRE.ReplaceAllStringFunc(s, func(s string) string {
+		count++
+		return ""
+	})
+	if count > 0 {
+		return true, ret
+	}
+	return false, ""
+}

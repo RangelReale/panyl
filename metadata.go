@@ -18,6 +18,7 @@ const (
 )
 
 const (
+	MetadataLevel_TRACE    = "trace"
 	MetadataLevel_DEBUG    = "debug"
 	MetadataLevel_INFO     = "info"
 	MetadataLevel_WARNING  = "warn"

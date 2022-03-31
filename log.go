@@ -33,7 +33,7 @@ func (l LogOutput) LogSourceLine(n int, line, rawLine string) {
 func (l LogOutput) LogProcess(p *Process) {
 	var lineno string
 	if p.LineCount > 1 {
-		lineno = fmt.Sprintf("[%d-%d]", p.LineNo, p.LineNo+p.LineCount)
+		lineno = fmt.Sprintf("[%d-%d]", p.LineNo, p.LineNo+p.LineCount-1)
 	} else {
 		lineno = fmt.Sprintf("[%d]", p.LineNo)
 	}
@@ -55,6 +55,13 @@ func (l LogOutput) LogProcess(p *Process) {
 			_, _ = buf.WriteString(" - ")
 		}
 		_, _ = buf.WriteString(fmt.Sprintf("Line: \"%s\"", p.Line))
+	}
+
+	if len(p.Source) > 0 {
+		if buf.Len() > 0 {
+			_, _ = buf.WriteString(" - ")
+		}
+		_, _ = buf.WriteString(fmt.Sprintf("Source: \"%s\"", p.Source))
 	}
 
 	_, _ = fmt.Fprintf(l.w, "*** PROCESS LINE %s: %s\n", lineno, buf.String())

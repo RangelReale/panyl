@@ -17,9 +17,10 @@ type Processor struct {
 	pluginConsolidate []PluginConsolidate
 	pluginPostProcess []PluginPostProcess
 
-	StartLine  int
-	LineAmount int
-	Logger     Log
+	StartLine     int
+	LineAmount    int
+	Logger        Log
+	IncludeSource bool
 }
 
 func NewProcessor(options ...Option) *Processor {
@@ -55,12 +56,16 @@ func (p *Processor) RegisterPlugin(plugin Plugin) {
 }
 
 func (p *Processor) initProcess(lineno int, line string) *Process {
-	return &Process{
+	ret := &Process{
 		LineNo:   lineno,
 		Metadata: map[string]interface{}{},
 		Data:     map[string]interface{}{},
 		Line:     line,
 	}
+	if p.IncludeSource {
+		ret.Source = line
+	}
+	return ret
 }
 
 func (p *Processor) Process(r io.Reader, result ProcessResult) error {
@@ -155,6 +160,9 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 		if lineProcessed {
 			process.LineNo = lines[lineFound].LineNo
 			process.LineCount = len(lines) - lineFound
+			if p.IncludeSource {
+				process.Source = ProcessLines(lines[lineFound:]).Source()
+			}
 			if lastTime.IsZero() {
 				// try to get the timestamp from the processed line if time is Zero
 				if pts, ok := process.Metadata[Metadata_Timestamp]; ok {
@@ -228,6 +236,9 @@ func (p *Processor) processResultLines(lines ProcessLines, result ProcessResult,
 				}
 
 				consolidateProcess.LineCount = topLines
+				if p.IncludeSource {
+					consolidateProcess.Source = ProcessLines(lines[startLine : startLine+topLines]).Source()
+				}
 				rts, err = p.outputResult(consolidateProcess, result, rts)
 				if err != nil {
 					return time.Time{}, err

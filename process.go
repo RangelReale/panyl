@@ -13,6 +13,7 @@ type Process struct {
 	Metadata  MapValue // is ALWAYS non-nil
 	Data      MapValue // is ALWAYS non-nil
 	Line      string
+	Source    string
 }
 
 func (p *Process) mergeData(other *Process) error {
@@ -68,6 +69,20 @@ func (pl ProcessLines) Lines() []string {
 // Line returns a list of all lines from each Process joined with \n
 func (pl ProcessLines) Line() string {
 	return strings.Join(pl.Lines(), "\n")
+}
+
+// Sources returns a list of all sources from each Process
+func (pl ProcessLines) Sources() []string {
+	var ret []string
+	for _, p := range pl {
+		ret = append(ret, p.Source)
+	}
+	return ret
+}
+
+// Source returns a list of all sources from each Process joined with \n
+func (pl ProcessLines) Source() string {
+	return strings.Join(pl.Sources(), "\n")
 }
 
 // ProcessResult receives the result of each processed line

@@ -9,6 +9,12 @@ func WithLineLimit(startLine, lineAmount int) Option {
 	}
 }
 
+func WithIncludeSource(includeSource bool) Option {
+	return func(p *Processor) {
+		p.IncludeSource = includeSource
+	}
+}
+
 func WithLogger(logger Log) Option {
 	return func(p *Processor) {
 		p.Logger = logger
