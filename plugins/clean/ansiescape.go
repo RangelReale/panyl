@@ -37,3 +37,10 @@ func AnsiEscapeString(s string) (bool, string) {
 	}
 	return false, ""
 }
+
+func DoAnsiEscapeString(s string) string {
+	if ok, es := AnsiEscapeString(s); ok {
+		return es
+	}
+	return s
+}
