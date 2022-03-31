@@ -9,6 +9,12 @@ func WithLineLimit(startLine, lineAmount int) Option {
 	}
 }
 
+func WithMaxBacklogLines(maxBacklogLines int) Option {
+	return func(p *Processor) {
+		p.MaxBacklogLines = maxBacklogLines
+	}
+}
+
 func WithIncludeSource(includeSource bool) Option {
 	return func(p *Processor) {
 		p.IncludeSource = includeSource

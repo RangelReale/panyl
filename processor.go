@@ -17,14 +17,17 @@ type Processor struct {
 	pluginConsolidate []PluginConsolidate
 	pluginPostProcess []PluginPostProcess
 
-	StartLine     int
-	LineAmount    int
-	Logger        Log
-	IncludeSource bool
+	StartLine       int
+	LineAmount      int
+	Logger          Log
+	IncludeSource   bool
+	MaxBacklogLines int
 }
 
 func NewProcessor(options ...Option) *Processor {
-	ret := &Processor{}
+	ret := &Processor{
+		MaxBacklogLines: 50,
+	}
 	for _, o := range options {
 		o(ret)
 	}
@@ -202,6 +205,15 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 					lines = ProcessLines{lines[len(lines)-1]}
 				}
 			}
+		}
+
+		if len(lines) > p.MaxBacklogLines {
+			var err error
+			lastTime, err = p.processResultLines(lines, result, lastTime)
+			if err != nil {
+				return err
+			}
+			lines = nil
 		}
 	}
 
