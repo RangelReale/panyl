@@ -3,6 +3,7 @@ package panyl
 import (
 	"bytes"
 	"fmt"
+	"github.com/RangelReale/panyl/util"
 	"io"
 	"os"
 )
@@ -15,7 +16,8 @@ type Log interface {
 
 // LogOutput writes log to the passed io.Writer
 type LogOutput struct {
-	w io.Writer
+	w             io.Writer
+	IncludeSource bool
 }
 
 func NewLogOutput(w io.Writer) *LogOutput {
@@ -57,11 +59,11 @@ func (l LogOutput) LogProcess(p *Process) {
 		_, _ = buf.WriteString(fmt.Sprintf("Line: \"%s\"", p.Line))
 	}
 
-	if len(p.Source) > 0 {
+	if l.IncludeSource && len(p.Source) > 0 {
 		if buf.Len() > 0 {
 			_, _ = buf.WriteString(" - ")
 		}
-		_, _ = buf.WriteString(fmt.Sprintf("Source: \"%s\"", p.Source))
+		_, _ = buf.WriteString(fmt.Sprintf("Source: \"%s\"", util.DoAnsiEscapeString(p.Source)))
 	}
 
 	_, _ = fmt.Fprintf(l.w, "*** PROCESS LINE %s: %s\n", lineno, buf.String())
