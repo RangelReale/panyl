@@ -22,6 +22,14 @@ type Processor struct {
 	Logger     Log
 }
 
+func NewProcessor(options ...Option) *Processor {
+	ret := &Processor{}
+	for _, o := range options {
+		o(ret)
+	}
+	return ret
+}
+
 func (p *Processor) RegisterPlugin(plugin Plugin) {
 	if rp, ok := plugin.(PluginClean); ok {
 		p.pluginClean = append(p.pluginClean, rp)

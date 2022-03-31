@@ -15,19 +15,19 @@ type Log interface {
 
 // LogOutput writes log to the passed io.Writer
 type LogOutput struct {
-	W io.Writer
+	w io.Writer
 }
 
 func NewLogOutput(w io.Writer) *LogOutput {
-	return &LogOutput{W: w}
+	return &LogOutput{w: w}
 }
 
 func NewStdLogOutput() *LogOutput {
-	return &LogOutput{W: os.Stdout}
+	return &LogOutput{w: os.Stdout}
 }
 
 func (l LogOutput) LogSourceLine(n int, line, rawLine string) {
-	_, _ = fmt.Fprintf(l.W, "@@@ SOURCE LINE [%d]: '%s' @@@\n", n, line)
+	_, _ = fmt.Fprintf(l.w, "@@@ SOURCE LINE [%d]: '%s' @@@\n", n, line)
 }
 
 func (l LogOutput) LogProcess(p *Process) {
@@ -57,5 +57,5 @@ func (l LogOutput) LogProcess(p *Process) {
 		_, _ = buf.WriteString(fmt.Sprintf("Line: \"%s\"", p.Line))
 	}
 
-	_, _ = fmt.Fprintf(l.W, "*** PROCESS LINE %s: %s\n", lineno, buf.String())
+	_, _ = fmt.Fprintf(l.w, "*** PROCESS LINE %s: %s\n", lineno, buf.String())
 }

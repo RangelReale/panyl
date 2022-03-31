@@ -62,7 +62,7 @@ func (m *MongoLog) ExtractParse(lines panyl.ProcessLines, result *panyl.Process)
 		result.Metadata[panyl.Metadata_Level] = panyl.MetadataLevel_DEBUG
 	} else if severity == "I" {
 		result.Metadata[panyl.Metadata_Level] = panyl.MetadataLevel_INFO
-	} else if severity == "W" {
+	} else if severity == "w" {
 		result.Metadata[panyl.Metadata_Level] = panyl.MetadataLevel_WARNING
 	} else if severity == "E" {
 		result.Metadata[panyl.Metadata_Level] = panyl.MetadataLevel_ERROR
