@@ -168,12 +168,23 @@ type PluginConsolidate interface {
 }
 ```
 
+### ParseFormat
+
+ ```go
+// PluginParseFormat is called for results that don't have Metadata_Format set, so it allows
+// detecting some format from a raw structure (JSON or XML), for example, detecting the Apache log format from
+// the parsed JSON data.
+type PluginParseFormat interface {
+	Plugin
+	ParseFormat(result *Process) (bool, error)
+}
+```
+
 ### Post Process
 
 ```go
-// PluginPostProcess is called right before the data is returned to the user, so it allows to do final post-processing
-// like detecting some format from a raw structure (JSON or XML), for example, detecting the Apache log format from a
-// JSON string.
+// PluginPostProcess is called right before the data is returned to the user, so it allows to do any final
+// post-processing on the data.
 type PluginPostProcess interface {
     PostProcess(result *Process) (bool, error)
 }

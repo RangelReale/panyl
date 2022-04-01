@@ -15,6 +15,7 @@ type Processor struct {
 	pluginStructure   []PluginStructure
 	pluginParse       []PluginParse
 	pluginConsolidate []PluginConsolidate
+	pluginParseFormat []PluginParseFormat
 	pluginPostProcess []PluginPostProcess
 
 	StartLine       int
@@ -52,6 +53,9 @@ func (p *Processor) RegisterPlugin(plugin Plugin) {
 	}
 	if rp, ok := plugin.(PluginConsolidate); ok {
 		p.pluginConsolidate = append(p.pluginConsolidate, rp)
+	}
+	if rp, ok := plugin.(PluginParseFormat); ok {
+		p.pluginParseFormat = append(p.pluginParseFormat, rp)
 	}
 	if rp, ok := plugin.(PluginPostProcess); ok {
 		p.pluginPostProcess = append(p.pluginPostProcess, rp)
@@ -281,6 +285,18 @@ func (p *Processor) outputResult(process *Process, result ProcessResult, lastTim
 		process.Metadata[Metadata_TimestampCalculated] = true
 	}
 	retTime := process.Metadata[Metadata_Timestamp].(time.Time)
+
+	// if no format was detected, call the ParseFormat plugins
+	if _, ok := process.Metadata[Metadata_Format]; !ok {
+		for _, pp := range p.pluginParseFormat {
+			ok, err := pp.ParseFormat(process)
+			if err != nil {
+				return time.Time{}, err
+			} else if ok {
+				break
+			}
+		}
+	}
 
 	for _, pp := range p.pluginPostProcess {
 		_, err := pp.PostProcess(process)
