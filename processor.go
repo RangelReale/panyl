@@ -279,13 +279,6 @@ func (p *Processor) processResultLines(lines ProcessLines, result ProcessResult,
 
 // outputResult post-processes the Process and outputs the result.
 func (p *Processor) outputResult(process *Process, result ProcessResult, lastTime time.Time) (time.Time, error) {
-	// check for timestamp in metadata, add the last one if not available
-	if _, ok := process.Metadata[Metadata_Timestamp]; !ok {
-		process.Metadata[Metadata_Timestamp] = lastTime
-		process.Metadata[Metadata_TimestampCalculated] = true
-	}
-	retTime := process.Metadata[Metadata_Timestamp].(time.Time)
-
 	// if no format was detected, call the ParseFormat plugins
 	if _, ok := process.Metadata[Metadata_Format]; !ok {
 		for _, pp := range p.pluginParseFormat {
@@ -297,6 +290,13 @@ func (p *Processor) outputResult(process *Process, result ProcessResult, lastTim
 			}
 		}
 	}
+
+	// check for timestamp in metadata, add the last one if not available
+	if _, ok := process.Metadata[Metadata_Timestamp]; !ok {
+		process.Metadata[Metadata_Timestamp] = lastTime
+		process.Metadata[Metadata_TimestampCalculated] = true
+	}
+	retTime := process.Metadata[Metadata_Timestamp].(time.Time)
 
 	for _, pp := range p.pluginPostProcess {
 		_, err := pp.PostProcess(process)

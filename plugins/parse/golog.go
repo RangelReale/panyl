@@ -8,7 +8,7 @@ import (
 
 var _ panyl.PluginParse = (*GoLog)(nil)
 
-const GoLog_Formag = "go_log"
+const GoLog_Format = "go_log"
 
 // GoLog parse Golang log lines format
 type GoLog struct {
@@ -44,7 +44,7 @@ func (m *GoLog) ExtractParse(lines panyl.ProcessLines, result *panyl.Process) (b
 	result.Data["source"] = matches[3]
 	result.Data["message"] = message
 
-	result.Metadata[panyl.Metadata_Format] = GoLog_Formag
+	result.Metadata[panyl.Metadata_Format] = GoLog_Format
 	result.Metadata[panyl.Metadata_Message] = message
 
 	if timestamp != "" {

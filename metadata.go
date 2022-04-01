@@ -1,5 +1,7 @@
 package panyl
 
+import "strconv"
+
 const (
 	Metadata_Structure           = "structure"
 	Metadata_Format              = "format"
@@ -34,14 +36,17 @@ const (
 // MapValue is a helper for handling map[string]interface{}
 type MapValue map[string]interface{}
 
+func (m MapValue) HasValue(name string) bool {
+	_, ok := m[name]
+	return ok
+}
+
 func (m MapValue) StringValue(name string) string {
 	v, ok := m[name]
 	if ok {
 		switch vv := v.(type) {
 		case string:
 			return vv
-		default:
-			return ""
 		}
 	}
 	return ""
@@ -53,11 +58,27 @@ func (m MapValue) IntValue(name string) int {
 		switch vv := v.(type) {
 		case int:
 			return vv
-		default:
-			return 0
 		}
 	}
 	return 0
+}
+
+func (m MapValue) BoolValue(name string) bool {
+	v, ok := m[name]
+	if ok {
+		switch vv := v.(type) {
+		case bool:
+			return vv
+		case int:
+			return vv != 0
+		case string:
+			b, err := strconv.ParseBool(vv)
+			if err == nil {
+				return b
+			}
+		}
+	}
+	return false
 }
 
 func (m MapValue) ListValue(name string) []string {
@@ -66,8 +87,6 @@ func (m MapValue) ListValue(name string) []string {
 		switch vv := v.(type) {
 		case []string:
 			return vv
-		default:
-			return nil
 		}
 	}
 	return nil
