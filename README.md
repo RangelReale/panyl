@@ -26,9 +26,9 @@ import (
     "encoding/json"
     "fmt"
     "github.com/RangelReale/panyl"
+    "github.com/RangelReale/panyl-plugins/parse"
     "github.com/RangelReale/panyl/plugins/clean"
     "github.com/RangelReale/panyl/plugins/metadata"
-    "github.com/RangelReale/panyl/plugins/parse"
     "github.com/RangelReale/panyl/plugins/structure"
     "os"
     "time"
@@ -175,8 +175,8 @@ type PluginConsolidate interface {
 // detecting some format from a raw structure (JSON or XML), for example, detecting the Apache log format from
 // the parsed JSON data.
 type PluginParseFormat interface {
-	Plugin
-	ParseFormat(result *Process) (bool, error)
+    Plugin
+    ParseFormat(result *Process) (bool, error)
 }
 ```
 
