@@ -28,7 +28,7 @@ import (
     "github.com/RangelReale/panyl"
     "github.com/RangelReale/panyl-plugins/parse"
     "github.com/RangelReale/panyl/plugins/clean"
-    "github.com/RangelReale/panyl/plugins/metadata"
+	"github.com/RangelReale/panyl-plugins/metadata"
     "github.com/RangelReale/panyl/plugins/structure"
     "os"
     "time"
