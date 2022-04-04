@@ -49,6 +49,7 @@ func (m *MongoLog) ExtractParse(lines panyl.ProcessLines, result *panyl.Process)
 	result.Data["message"] = message
 
 	result.Metadata[panyl.Metadata_Format] = MongoLog_Format
+	result.Metadata[panyl.Metadata_Message] = message
 
 	if timestamp != "" {
 		ts, err := time.Parse(mongoTimestampFormat, timestamp)
@@ -62,7 +63,7 @@ func (m *MongoLog) ExtractParse(lines panyl.ProcessLines, result *panyl.Process)
 		result.Metadata[panyl.Metadata_Level] = panyl.MetadataLevel_DEBUG
 	} else if severity == "I" {
 		result.Metadata[panyl.Metadata_Level] = panyl.MetadataLevel_INFO
-	} else if severity == "w" {
+	} else if severity == "W" {
 		result.Metadata[panyl.Metadata_Level] = panyl.MetadataLevel_WARNING
 	} else if severity == "E" {
 		result.Metadata[panyl.Metadata_Level] = panyl.MetadataLevel_ERROR
