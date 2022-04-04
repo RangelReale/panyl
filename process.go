@@ -16,6 +16,13 @@ type Process struct {
 	Source    string
 }
 
+func InitProcess() *Process {
+	return &Process{
+		Metadata: map[string]interface{}{},
+		Data:     map[string]interface{}{},
+	}
+}
+
 func (p *Process) mergeData(other *Process) error {
 	if err := mergo.Map(&p.Metadata, other.Metadata); err != nil {
 		return fmt.Errorf("Error merging structs: %v", err)
