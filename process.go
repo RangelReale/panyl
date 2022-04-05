@@ -16,10 +16,46 @@ type Process struct {
 	Source    string
 }
 
-func InitProcess() *Process {
-	return &Process{
-		Metadata: map[string]interface{}{},
-		Data:     map[string]interface{}{},
+func InitProcess(options ...InitProcessOption) *Process {
+	ret := &Process{
+		Metadata: MapValue{},
+		Data:     MapValue{},
+	}
+	for _, opt := range options {
+		opt(ret)
+	}
+	return ret
+}
+
+type InitProcessOption func(p *Process)
+
+func WithInitLineNo(lineNo int) InitProcessOption {
+	return func(p *Process) {
+		p.LineNo = lineNo
+	}
+}
+
+func WithInitLineCount(lineCount int) InitProcessOption {
+	return func(p *Process) {
+		p.LineCount = lineCount
+	}
+}
+
+func WithInitLine(line string) InitProcessOption {
+	return func(p *Process) {
+		p.Line = line
+	}
+}
+
+func WithInitSource(source string) InitProcessOption {
+	return func(p *Process) {
+		p.Source = source
+	}
+}
+
+func WithInitCustom(f func(*Process)) InitProcessOption {
+	return func(p *Process) {
+		f(p)
 	}
 }
 

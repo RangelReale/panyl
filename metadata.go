@@ -12,6 +12,7 @@ const (
 	Metadata_Application         = "application"
 	Metadata_Clean               = "clean" // []string
 	Metadata_Category            = "category"
+	Metadata_Created             = "created" // bool [whether the process was created instead of being in the log file]
 )
 
 const (

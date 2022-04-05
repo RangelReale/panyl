@@ -62,6 +62,16 @@ type PluginParseFormat interface {
 	ParseFormat(result *Process) (bool, error)
 }
 
+// PluginCreate allows creating process entries that are not present in the log file.
+// Use this to add custom log entries to the output.
+// This is called after PluginPostProcess, and PluginPostProcess is also called for each item.
+// Metadata_Created is set as true for items created by these functions.
+type PluginCreate interface {
+	Plugin
+	CreateBefore(result *Process) ([]*Process, error)
+	CreateAfter(result *Process) ([]*Process, error)
+}
+
 // PluginPostProcess is called right before the data is returned to the user, so it allows to do any final
 // post-processing on the data.
 type PluginPostProcess interface {

@@ -17,6 +17,7 @@ type Processor struct {
 	pluginConsolidate []PluginConsolidate
 	pluginParseFormat []PluginParseFormat
 	pluginPostProcess []PluginPostProcess
+	pluginCreate      []PluginCreate
 
 	StartLine       int
 	LineAmount      int
@@ -59,6 +60,9 @@ func (p *Processor) RegisterPlugin(plugin Plugin) {
 	}
 	if rp, ok := plugin.(PluginPostProcess); ok {
 		p.pluginPostProcess = append(p.pluginPostProcess, rp)
+	}
+	if rp, ok := plugin.(PluginCreate); ok {
+		p.pluginCreate = append(p.pluginCreate, rp)
 	}
 }
 
@@ -291,6 +295,11 @@ func (p *Processor) outputResult(process *Process, result ProcessResult, lastTim
 		}
 	}
 
+	return p.internalOutputResult(process, result, lastTime, true)
+}
+
+// outputResult post-processes the Process and outputs the result.
+func (p *Processor) internalOutputResult(process *Process, result ProcessResult, lastTime time.Time, create bool) (time.Time, error) {
 	// check for timestamp in metadata, add the last one if not available
 	if _, ok := process.Metadata[Metadata_Timestamp]; !ok {
 		process.Metadata[Metadata_Timestamp] = lastTime
@@ -305,10 +314,52 @@ func (p *Processor) outputResult(process *Process, result ProcessResult, lastTim
 		}
 	}
 
+	createFunc := func(isBefore bool) error {
+		// call create plugins
+		if create {
+			for _, pp := range p.pluginCreate {
+				var items []*Process
+				var err error
+				if isBefore {
+					items, err = pp.CreateBefore(process)
+				} else {
+					items, err = pp.CreateAfter(process)
+				}
+				if err != nil {
+					if err != nil {
+						return err
+					}
+				}
+				for _, item := range items {
+					item.Metadata[Metadata_Created] = true
+					_, err = p.internalOutputResult(item, result, lastTime, false)
+					if err != nil {
+						if err != nil {
+							return err
+						}
+					}
+				}
+			}
+		}
+		return nil
+	}
+
+	// create Create plugin before outputting current result
+	err := createFunc(true)
+	if err != nil {
+		return time.Time{}, err
+	}
+
 	if p.Logger != nil {
 		p.Logger.LogProcess(process)
 	}
 	result.OnResult(process)
+
+	// create Create plugin after outputting current result
+	err = createFunc(false)
+	if err != nil {
+		return time.Time{}, err
+	}
 
 	return retTime, nil
 }

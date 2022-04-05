@@ -28,7 +28,7 @@ import (
     "github.com/RangelReale/panyl"
     "github.com/RangelReale/panyl-plugins/parse"
     "github.com/RangelReale/panyl/plugins/clean"
-	"github.com/RangelReale/panyl-plugins/metadata"
+    "github.com/RangelReale/panyl-plugins/metadata"
     "github.com/RangelReale/panyl/plugins/structure"
     "os"
     "time"
@@ -175,8 +175,20 @@ type PluginConsolidate interface {
 // detecting some format from a raw structure (JSON or XML), for example, detecting the Apache log format from
 // the parsed JSON data.
 type PluginParseFormat interface {
-    Plugin
     ParseFormat(result *Process) (bool, error)
+}
+```
+
+### Create
+
+```go
+// PluginCreate allows creating process entries that are not present in the log file.
+// Use this to add custom log entries to the output.
+// This is called after PluginPostProcess, and PluginPostProcess is also called for each item.
+// Metadata_Created is set as true for items created by these functions.
+type PluginCreate interface {
+    CreateBefore(result *Process) ([]*Process, error)
+    CreateAfter(result *Process) ([]*Process, error)
 }
 ```
 
