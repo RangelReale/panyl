@@ -81,6 +81,11 @@ func (p *Processor) initProcess(lineno int, line string) *Process {
 
 func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 	scanner := bufio.NewScanner(r)
+	// adjust the scanner capacity to 1MB instead of 64kb
+	const maxCapacity = 1024 * 1024
+	buf := make([]byte, maxCapacity)
+	scanner.Buffer(buf, maxCapacity)
+
 	lineno := 0
 
 	var lastTime time.Time
