@@ -40,3 +40,9 @@ func WithPlugins(plugin ...Plugin) Option {
 		}
 	}
 }
+
+func WithScannerBufferSize(scannerBufferSize int) Option {
+	return func(p *Processor) {
+		p.ScannerBufferSize = scannerBufferSize
+	}
+}

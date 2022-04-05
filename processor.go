@@ -19,16 +19,18 @@ type Processor struct {
 	pluginPostProcess []PluginPostProcess
 	pluginCreate      []PluginCreate
 
-	StartLine       int
-	LineAmount      int
-	Logger          Log
-	IncludeSource   bool
-	MaxBacklogLines int
+	StartLine         int
+	LineAmount        int
+	Logger            Log
+	IncludeSource     bool
+	MaxBacklogLines   int
+	ScannerBufferSize int
 }
 
 func NewProcessor(options ...Option) *Processor {
 	ret := &Processor{
-		MaxBacklogLines: 50,
+		MaxBacklogLines:   50,
+		ScannerBufferSize: 1024 * 1024,
 	}
 	for _, o := range options {
 		o(ret)
@@ -81,10 +83,11 @@ func (p *Processor) initProcess(lineno int, line string) *Process {
 
 func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 	scanner := bufio.NewScanner(r)
-	// adjust the scanner capacity to 1MB instead of 64kb
-	const maxCapacity = 1024 * 1024
-	buf := make([]byte, maxCapacity)
-	scanner.Buffer(buf, maxCapacity)
+	if p.ScannerBufferSize > 0 {
+		// adjust the scanner capacity
+		buf := make([]byte, p.ScannerBufferSize)
+		scanner.Buffer(buf, p.ScannerBufferSize)
+	}
 
 	lineno := 0
 
