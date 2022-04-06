@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"time"
 )
@@ -93,6 +94,7 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 
 	var lastTime time.Time
 	var lines ProcessLines
+	sortedPluginPostProcess := p.sortedPluginPostProcess()
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -190,12 +192,12 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 			}
 			// process previous lines
 			var err error
-			_, err = p.processResultLines(lines[:lineFound], result, lastTime)
+			_, err = p.processResultLines(lines[:lineFound], result, lastTime, sortedPluginPostProcess)
 			if err != nil {
 				return err
 			}
 			// process current line
-			lastTime, err = p.outputResult(process, result, lastTime)
+			lastTime, err = p.outputResult(process, result, lastTime, sortedPluginPostProcess)
 			if err != nil {
 				return err
 			}
@@ -214,7 +216,7 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 				if blockSequence {
 					// process previous lines and leave only the current line
 					var err error
-					lastTime, err = p.processResultLines(lines[:len(lines)-1], result, lastTime)
+					lastTime, err = p.processResultLines(lines[:len(lines)-1], result, lastTime, sortedPluginPostProcess)
 					if err != nil {
 						return err
 					}
@@ -225,7 +227,7 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 
 		if len(lines) > p.MaxBacklogLines {
 			var err error
-			lastTime, err = p.processResultLines(lines, result, lastTime)
+			lastTime, err = p.processResultLines(lines, result, lastTime, sortedPluginPostProcess)
 			if err != nil {
 				return err
 			}
@@ -235,7 +237,7 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 
 	if len(lines) > 0 {
 		// process any lines left
-		_, err := p.processResultLines(lines, result, lastTime)
+		_, err := p.processResultLines(lines, result, lastTime, sortedPluginPostProcess)
 		if err != nil {
 			return err
 		}
@@ -249,7 +251,8 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 }
 
 // processResultLines process previous lines, trying to consolidate using Consolidate plugins, and outputs each result.
-func (p *Processor) processResultLines(lines ProcessLines, result ProcessResult, lastTime time.Time) (time.Time, error) {
+func (p *Processor) processResultLines(lines ProcessLines, result ProcessResult, lastTime time.Time,
+	sortedPluginPostProcess []PluginPostProcess) (time.Time, error) {
 	var rts = lastTime
 	startLine := 0
 	for startLine < len(lines) {
@@ -267,7 +270,7 @@ func (p *Processor) processResultLines(lines ProcessLines, result ProcessResult,
 				if p.IncludeSource {
 					consolidateProcess.Source = ProcessLines(lines[startLine : startLine+topLines]).Source()
 				}
-				rts, err = p.outputResult(consolidateProcess, result, rts)
+				rts, err = p.outputResult(consolidateProcess, result, rts, sortedPluginPostProcess)
 				if err != nil {
 					return time.Time{}, err
 				}
@@ -279,7 +282,7 @@ func (p *Processor) processResultLines(lines ProcessLines, result ProcessResult,
 		if !processed {
 			lines[startLine].LineCount = 1
 			var err error
-			rts, err = p.outputResult(lines[startLine], result, rts)
+			rts, err = p.outputResult(lines[startLine], result, rts, sortedPluginPostProcess)
 			if err != nil {
 				return time.Time{}, err
 			}
@@ -290,7 +293,8 @@ func (p *Processor) processResultLines(lines ProcessLines, result ProcessResult,
 }
 
 // outputResult post-processes the Process and outputs the result.
-func (p *Processor) outputResult(process *Process, result ProcessResult, lastTime time.Time) (time.Time, error) {
+func (p *Processor) outputResult(process *Process, result ProcessResult, lastTime time.Time,
+	sortedPluginPostProcess []PluginPostProcess) (time.Time, error) {
 	// if no format was detected, call the ParseFormat plugins
 	if _, ok := process.Metadata[Metadata_Format]; !ok {
 		for _, pp := range p.pluginParseFormat {
@@ -303,11 +307,12 @@ func (p *Processor) outputResult(process *Process, result ProcessResult, lastTim
 		}
 	}
 
-	return p.internalOutputResult(process, result, lastTime, true)
+	return p.internalOutputResult(process, result, lastTime, true, sortedPluginPostProcess)
 }
 
 // outputResult post-processes the Process and outputs the result.
-func (p *Processor) internalOutputResult(process *Process, result ProcessResult, lastTime time.Time, create bool) (time.Time, error) {
+func (p *Processor) internalOutputResult(process *Process, result ProcessResult, lastTime time.Time, create bool,
+	sortedPluginPostProcess []PluginPostProcess) (time.Time, error) {
 	// check for timestamp in metadata, add the last one if not available
 	if _, ok := process.Metadata[Metadata_Timestamp]; !ok {
 		process.Metadata[Metadata_Timestamp] = lastTime
@@ -315,7 +320,7 @@ func (p *Processor) internalOutputResult(process *Process, result ProcessResult,
 	}
 	retTime := process.Metadata[Metadata_Timestamp].(time.Time)
 
-	for _, pp := range p.pluginPostProcess {
+	for _, pp := range p.sortedPluginPostProcess() {
 		_, err := pp.PostProcess(process)
 		if err != nil {
 			return time.Time{}, err
@@ -340,7 +345,7 @@ func (p *Processor) internalOutputResult(process *Process, result ProcessResult,
 				}
 				for _, item := range items {
 					item.Metadata[Metadata_Created] = true
-					_, err = p.internalOutputResult(item, result, lastTime, false)
+					_, err = p.internalOutputResult(item, result, lastTime, false, sortedPluginPostProcess)
 					if err != nil {
 						if err != nil {
 							return err
@@ -370,4 +375,28 @@ func (p *Processor) internalOutputResult(process *Process, result ProcessResult,
 	}
 
 	return retTime, nil
+}
+
+func (p *Processor) sortedPluginPostProcess() []PluginPostProcess {
+	orderPlugins := map[int][]PluginPostProcess{}
+	var orderList []int
+
+	for _, plugin := range p.pluginPostProcess {
+		order := plugin.PostProcessOrder()
+		if _, ok := orderPlugins[order]; !ok {
+			orderPlugins[order] = []PluginPostProcess{}
+			orderList = append(orderList, order)
+		}
+		orderPlugins[order] = append(orderPlugins[order], plugin)
+	}
+
+	sort.Ints(orderList)
+
+	var ret []PluginPostProcess
+	for _, order := range orderList {
+		for _, plugin := range orderPlugins[order] {
+			ret = append(ret, plugin)
+		}
+	}
+	return ret
 }

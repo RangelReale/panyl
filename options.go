@@ -1,5 +1,11 @@
 package panyl
 
+const (
+	PostProcessOrder_First   = 0
+	PostProcessOrder_Last    = 10
+	PostProcessOrder_Default = 5
+)
+
 type Option func(p *Processor)
 
 func WithLineLimit(startLine, lineAmount int) Option {

@@ -74,7 +74,11 @@ type PluginCreate interface {
 
 // PluginPostProcess is called right before the data is returned to the user, so it allows to do any final
 // post-processing on the data.
+// Order determines in which order post process plugins execute, lower execute first than higher.
+// Use PostProcessOrder_Default as default. PostProcessOrder_First and PostProcessOrder_Last should be used
+// as limits.
 type PluginPostProcess interface {
 	Plugin
+	PostProcessOrder() int
 	PostProcess(result *Process) (bool, error)
 }

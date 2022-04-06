@@ -1,6 +1,7 @@
 package panyl
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
@@ -38,6 +39,25 @@ func TestProcessor_CreatePlugin(t *testing.T) {
 	assert.Equal(t, res.List[2].Line, "line-after-create")
 }
 
+func TestProcessor_PostProcessOrder(t *testing.T) {
+	p := NewProcessor()
+	p.RegisterPlugin(&PostProcessPluginTest{5})
+	p.RegisterPlugin(&PostProcessPluginTest{2})
+	p.RegisterPlugin(&PostProcessPluginTest{10})
+	p.RegisterPlugin(&PostProcessPluginTest{7})
+	p.RegisterPlugin(&PostProcessPluginTest{1})
+	p.RegisterPlugin(&PostProcessPluginTest{7})
+
+	res := &ProcessResultArray{}
+	err := p.Process(strings.NewReader(`line`), res)
+
+	assert.NoError(t, err)
+
+	assert.Len(t, res.List, 1)
+	assert.Equal(t, res.List[0].Line, "line_1_2_5_7_7_10")
+}
+
+// AllPlugins
 type AllPlugins struct {
 }
 
@@ -79,10 +99,15 @@ func (ap AllPlugins) CreateAfter(result *Process) ([]*Process, error) {
 	return nil, nil
 }
 
+func (ap AllPlugins) PostProcessOrder() int {
+	return PostProcessOrder_Default
+}
+
 func (ap AllPlugins) PostProcess(result *Process) (bool, error) {
 	return false, nil
 }
 
+// CreatePluginTest
 type CreatePluginTest struct {
 }
 
@@ -100,11 +125,31 @@ func (pt CreatePluginTest) CreateAfter(result *Process) ([]*Process, error) {
 	}, nil
 }
 
+func (pt CreatePluginTest) PostProcessOrder() int {
+	return PostProcessOrder_Default
+}
+
 func (pt CreatePluginTest) PostProcess(result *Process) (bool, error) {
 	if result.Metadata.BoolValue(Metadata_Created) {
 		result.Line += "-create"
 	} else {
 		result.Line += "-default"
 	}
+	return true, nil
+}
+
+// PostProcessPluginTest
+type PostProcessPluginTest struct {
+	order int
+}
+
+func (pt PostProcessPluginTest) IsPanylPlugin() {}
+
+func (pt PostProcessPluginTest) PostProcessOrder() int {
+	return pt.order
+}
+
+func (pt PostProcessPluginTest) PostProcess(result *Process) (bool, error) {
+	result.Line += fmt.Sprintf("_%d", pt.order)
 	return true, nil
 }
