@@ -60,6 +60,24 @@ func (m MapValue) IntValue(name string) int {
 		switch vv := v.(type) {
 		case int:
 			return vv
+		case int8:
+			return int(vv)
+		case int16:
+			return int(vv)
+		case int32:
+			return int(vv)
+		case int64:
+			return int(vv)
+		case uint:
+			return int(vv)
+		case uint8:
+			return int(vv)
+		case uint16:
+			return int(vv)
+		case uint32:
+			return int(vv)
+		case uint64:
+			return int(vv)
 		}
 	}
 	return 0
