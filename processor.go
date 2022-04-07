@@ -126,10 +126,6 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 			continue
 		}
 
-		if p.IncludeSource {
-			process.Source = process.Line
-		}
-
 		// Log source line
 		if p.Logger != nil {
 			p.Logger.LogSourceLine(lineno, process.Line, line)
@@ -141,6 +137,11 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 			if err != nil {
 				return err
 			}
+		}
+
+		if p.IncludeSource {
+			// source with Clean and Metadata plugins applied
+			process.Source = process.Line
 		}
 
 		// add current process to lines
