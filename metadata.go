@@ -78,6 +78,43 @@ func (m MapValue) IntValue(name string) int {
 			return int(vv)
 		case uint64:
 			return int(vv)
+		case float32:
+			return int(vv)
+		case float64:
+			return int(vv)
+		}
+	}
+	return 0
+}
+
+func (m MapValue) FloatValue(name string) float64 {
+	v, ok := m[name]
+	if ok {
+		switch vv := v.(type) {
+		case float32:
+			return float64(vv)
+		case float64:
+			return float64(vv)
+		case int:
+			return float64(vv)
+		case int8:
+			return float64(vv)
+		case int16:
+			return float64(vv)
+		case int32:
+			return float64(vv)
+		case int64:
+			return float64(vv)
+		case uint:
+			return float64(vv)
+		case uint8:
+			return float64(vv)
+		case uint16:
+			return float64(vv)
+		case uint32:
+			return float64(vv)
+		case uint64:
+			return float64(vv)
 		}
 	}
 	return 0
