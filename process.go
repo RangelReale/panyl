@@ -13,7 +13,8 @@ type Process struct {
 	Metadata  MapValue // is ALWAYS non-nil
 	Data      MapValue // is ALWAYS non-nil
 	Line      string
-	Source    string
+	RawSource string // raw source from file
+	Source    string // source with Clean and Metadata plugins applied
 }
 
 func InitProcess(options ...InitProcessOption) *Process {

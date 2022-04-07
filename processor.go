@@ -77,7 +77,7 @@ func (p *Processor) initProcess(lineno int, line string) *Process {
 		Line:     line,
 	}
 	if p.IncludeSource {
-		ret.Source = line
+		ret.RawSource = line
 	}
 	return ret
 }
@@ -124,6 +124,10 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 		// skip empty lines
 		if len(process.Line) == 0 {
 			continue
+		}
+
+		if p.IncludeSource {
+			process.Source = process.Line
 		}
 
 		// Log source line
