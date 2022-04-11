@@ -248,6 +248,9 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 		}
 	}
 
+	// allows output flushing, like flushing network connections
+	result.OnFlush()
+
 	if err := scanner.Err(); err != nil {
 		return err
 	}
