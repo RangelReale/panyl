@@ -39,6 +39,24 @@ func TestProcessor_CreatePlugin(t *testing.T) {
 	assert.Equal(t, res.List[2].Line, "line-after-create")
 }
 
+func TestProcessor_CreatePlugin_LineProvider(t *testing.T) {
+	p := NewProcessor()
+	pl := &CreatePluginTest{}
+	p.RegisterPlugin(pl)
+
+	res := &ProcessResultArray{}
+	err := p.ProcessProvider(NewStaticLineProvider([]interface{}{
+		InitProcess(WithInitLine("line")),
+	}), res)
+
+	assert.NoError(t, err)
+
+	assert.Len(t, res.List, 3)
+	assert.Equal(t, res.List[0].Line, "line-before-create")
+	assert.Equal(t, res.List[1].Line, "line-default")
+	assert.Equal(t, res.List[2].Line, "line-after-create")
+}
+
 func TestProcessor_PostProcessOrder(t *testing.T) {
 	p := NewProcessor()
 	p.RegisterPlugin(&PostProcessPluginTest{5})

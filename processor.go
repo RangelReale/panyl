@@ -1,7 +1,7 @@
 package panyl
 
 import (
-	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"sort"
@@ -31,7 +31,7 @@ type Processor struct {
 func NewProcessor(options ...Option) *Processor {
 	ret := &Processor{
 		MaxBacklogLines:   50,
-		ScannerBufferSize: 1024 * 1024,
+		ScannerBufferSize: DefaultScannerBufferSize,
 	}
 	for _, o := range options {
 		o(ret)
@@ -82,14 +82,23 @@ func (p *Processor) initProcess(lineno int, line string) *Process {
 	return ret
 }
 
-func (p *Processor) Process(r io.Reader, result ProcessResult) error {
-	scanner := bufio.NewScanner(r)
-	if p.ScannerBufferSize > 0 {
-		// adjust the scanner capacity
-		buf := make([]byte, p.ScannerBufferSize)
-		scanner.Buffer(buf, p.ScannerBufferSize)
+func (p *Processor) ensureProcess(process *Process) {
+	if process.Metadata == nil {
+		process.Metadata = map[string]interface{}{}
 	}
+	if process.Data == nil {
+		process.Data = map[string]interface{}{}
+	}
+	if !p.IncludeSource {
+		process.RawSource = ""
+	}
+}
 
+func (p *Processor) Process(r io.Reader, result ProcessResult) error {
+	return p.ProcessProvider(NewReaderLineProvider(r, p.ScannerBufferSize), result)
+}
+
+func (p *Processor) ProcessProvider(scanner LineProvider, result ProcessResult) error {
 	lineno := 0
 
 	var lastTime time.Time
@@ -97,7 +106,7 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 	sortedPluginPostProcess := p.sortedPluginPostProcess()
 
 	for scanner.Scan() {
-		line := scanner.Text()
+		line := scanner.Line()
 		lineno++
 
 		if p.LineAmount > 0 {
@@ -109,7 +118,27 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 			}
 		}
 
-		process := p.initProcess(lineno, line)
+		// read line from LineProvider
+		var sourceLine string
+		var process *Process
+		switch l := line.(type) {
+		case string:
+			process = p.initProcess(lineno, l)
+			sourceLine = l
+		case *Process:
+			process = l
+			process.LineNo = lineno
+			p.ensureProcess(process)
+
+			if p.Logger != nil {
+				// encode source line for Logger
+				sourceLineBytes, err := json.Marshal(process.Data)
+				if err == nil {
+					// ignore errors
+					sourceLine = string(sourceLineBytes)
+				}
+			}
+		}
 
 		// PROCESS: Clean
 		for _, pclean := range p.pluginClean {
@@ -128,7 +157,7 @@ func (p *Processor) Process(r io.Reader, result ProcessResult) error {
 
 		// Log source line
 		if p.Logger != nil {
-			p.Logger.LogSourceLine(lineno, process.Line, line)
+			p.Logger.LogSourceLine(lineno, process.Line, sourceLine)
 		}
 
 		// PROCESS: Extract metadata
