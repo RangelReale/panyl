@@ -350,12 +350,18 @@ func (p *Processor) outputResult(process *Process, result ProcessResult, lastTim
 // outputResult post-processes the Process and outputs the result.
 func (p *Processor) internalOutputResult(process *Process, result ProcessResult, lastTime time.Time, create bool,
 	sortedPluginPostProcess []PluginPostProcess) (time.Time, error) {
+	retTime := lastTime
 	// check for timestamp in metadata, add the last one if not available
 	if _, ok := process.Metadata[Metadata_Timestamp]; !ok {
-		process.Metadata[Metadata_Timestamp] = lastTime
+		if lastTime.IsZero() {
+			process.Metadata[Metadata_Timestamp] = time.Now()
+		} else {
+			process.Metadata[Metadata_Timestamp] = lastTime
+		}
 		process.Metadata[Metadata_TimestampCalculated] = true
+	} else {
+		retTime = process.Metadata[Metadata_Timestamp].(time.Time)
 	}
-	retTime := process.Metadata[Metadata_Timestamp].(time.Time)
 
 	for _, pp := range p.sortedPluginPostProcess() {
 		_, err := pp.PostProcess(process)
