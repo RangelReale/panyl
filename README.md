@@ -36,7 +36,6 @@ import (
 
 func main() {
     processor := panyl.NewProcessor(
-        panyl.WithLineLimit(0, 100),
         panyl.WithPlugins(
             &clean.AnsiEscape{},
             &metadata.DockerCompose{},
@@ -50,7 +49,7 @@ func main() {
         // panyl.WithLogger(panyl.NewStdLogOutput()),
     )
 
-    err := processor.Process(os.Stdin, &Output{})
+    err := processor.Process(os.Stdin, &Output{}, panyl.WithLineLimit(0, 100))
     if err != nil {
         fmt.Fprintf(os.Stderr, "Error processing input: %s", err.Error())
     }

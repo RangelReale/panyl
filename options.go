@@ -8,21 +8,23 @@ const (
 
 type Option func(p *Processor)
 
-func WithLineLimit(startLine, lineAmount int) Option {
-	return func(p *Processor) {
+type JobOption func(p *Job)
+
+func WithLineLimit(startLine, lineAmount int) JobOption {
+	return func(p *Job) {
 		p.StartLine = startLine
 		p.LineAmount = lineAmount
 	}
 }
 
-func WithMaxBacklogLines(maxBacklogLines int) Option {
-	return func(p *Processor) {
+func WithMaxBacklogLines(maxBacklogLines int) JobOption {
+	return func(p *Job) {
 		p.MaxBacklogLines = maxBacklogLines
 	}
 }
 
-func WithIncludeSource(includeSource bool) Option {
-	return func(p *Processor) {
+func WithIncludeSource(includeSource bool) JobOption {
+	return func(p *Job) {
 		p.IncludeSource = includeSource
 	}
 }
@@ -44,11 +46,5 @@ func WithPlugins(plugin ...Plugin) Option {
 		for _, pl := range plugin {
 			p.RegisterPlugin(pl)
 		}
-	}
-}
-
-func WithScannerBufferSize(scannerBufferSize int) Option {
-	return func(p *Processor) {
-		p.ScannerBufferSize = scannerBufferSize
 	}
 }
