@@ -3,6 +3,7 @@ package panyl
 import (
 	"errors"
 	"io"
+	"time"
 )
 
 type Processor struct {
@@ -63,7 +64,6 @@ func (p *Processor) Process(r io.Reader, result ProcessResult, options ...JobOpt
 
 func (p *Processor) ProcessProvider(scanner LineProvider, result ProcessResult, options ...JobOption) error {
 	job := NewJob(p, result, options...)
-
 	var err error
 	for scanner.Scan() {
 		err = job.ProcessLine(scanner.Line())
@@ -79,5 +79,20 @@ func (p *Processor) ProcessProvider(scanner LineProvider, result ProcessResult, 
 		return err
 	}
 
+	_ = p.processFinished(job)
+
 	return job.Finish()
+}
+
+func (p *Processor) processFinished(job *Job) error {
+	return job.ProcessLine(&Process{
+		LineNo:    0,
+		LineCount: 0,
+		Metadata: map[string]interface{}{
+			Metadata_Timestamp: time.Now(),
+			Metadata_Level:     MetadataLevel_DEBUG,
+			Metadata_Message:   "process finished",
+		},
+		Line: "process finished",
+	})
 }
