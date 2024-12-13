@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -16,6 +17,7 @@ type Job struct {
 	lastTime                time.Time
 	lines                   ProcessLines
 	sortedPluginPostProcess []PluginPostProcess
+	m                       sync.Mutex
 
 	StartLine       int
 	LineAmount      int
@@ -40,6 +42,9 @@ func NewJob(processor *Processor, result ProcessResult, options ...JobOption) *J
 }
 
 func (p *Job) ProcessLine(line interface{}) error {
+	// p.m.Lock()
+	// defer p.m.Unlock()
+
 	p.lineno++
 
 	if p.LineAmount > 0 {

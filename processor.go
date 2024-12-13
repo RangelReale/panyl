@@ -3,7 +3,6 @@ package panyl
 import (
 	"errors"
 	"io"
-	"time"
 )
 
 type Processor struct {
@@ -16,6 +15,7 @@ type Processor struct {
 	pluginParseFormat []PluginParseFormat
 	pluginPostProcess []PluginPostProcess
 	pluginCreate      []PluginCreate
+	onJobFinished     []func(*Job) error
 
 	Logger Log
 }
@@ -79,20 +79,9 @@ func (p *Processor) ProcessProvider(scanner LineProvider, result ProcessResult, 
 		return err
 	}
 
-	_ = p.processFinished(job)
+	for _, jobFinished := range p.onJobFinished {
+		_ = jobFinished(job)
+	}
 
 	return job.Finish()
-}
-
-func (p *Processor) processFinished(job *Job) error {
-	return job.ProcessLine(&Process{
-		LineNo:    0,
-		LineCount: 0,
-		Metadata: map[string]interface{}{
-			Metadata_Timestamp: time.Now(),
-			Metadata_Level:     MetadataLevel_DEBUG,
-			Metadata_Message:   "process finished",
-		},
-		Line: "process finished",
-	})
 }
