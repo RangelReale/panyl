@@ -1,5 +1,7 @@
 package panyl
 
+import "log/slog"
+
 const (
 	PostProcessOrder_First   = 0
 	PostProcessOrder_Last    = 10
@@ -52,5 +54,11 @@ func WithPlugins(plugin ...Plugin) Option {
 func WithOnJobFinished(f func(*Job) error) Option {
 	return func(p *Processor) {
 		p.onJobFinished = append(p.onJobFinished, f)
+	}
+}
+
+func WithAppLogger(logger *slog.Logger) Option {
+	return func(p *Processor) {
+		p.appLogger = logger
 	}
 }

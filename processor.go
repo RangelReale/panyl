@@ -3,6 +3,8 @@ package panyl
 import (
 	"errors"
 	"io"
+	"log/slog"
+	"os"
 )
 
 type Processor struct {
@@ -16,16 +18,30 @@ type Processor struct {
 	pluginPostProcess []PluginPostProcess
 	pluginCreate      []PluginCreate
 	onJobFinished     []func(*Job) error
+	appLogger         *slog.Logger
 
 	Logger Log
 }
 
 func NewProcessor(options ...Option) *Processor {
-	ret := &Processor{}
+	ret := &Processor{
+		appLogger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
+	}
 	for _, o := range options {
 		o(ret)
 	}
 	return ret
+}
+
+func (p *Processor) AppLogger() *slog.Logger {
+	return p.appLogger
+}
+
+func (p *Processor) SetAppLogger(logger *slog.Logger) {
+	if logger == nil {
+		return
+	}
+	p.appLogger = logger
 }
 
 func (p *Processor) RegisterPlugin(plugin Plugin) {

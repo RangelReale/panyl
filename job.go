@@ -42,8 +42,8 @@ func NewJob(processor *Processor, result ProcessResult, options ...JobOption) *J
 }
 
 func (p *Job) ProcessLine(line interface{}) error {
-	// p.m.Lock()
-	// defer p.m.Unlock()
+	p.m.Lock()
+	defer p.m.Unlock()
 
 	p.lineno++
 
