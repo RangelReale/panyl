@@ -315,6 +315,13 @@ func (p *Job) outputResult(process *Process, result ProcessResult, lastTime time
 // outputResult post-processes the Process and outputs the result.
 func (p *Job) internalOutputResult(process *Process, result ProcessResult, lastTime time.Time, create bool,
 	sortedPluginPostProcess []PluginPostProcess) (time.Time, error) {
+	for _, pp := range sortedPluginPostProcess {
+		_, err := pp.PostProcess(process)
+		if err != nil {
+			return time.Time{}, err
+		}
+	}
+
 	retTime := lastTime
 	// check for timestamp in metadata, add the last one if not available
 	if _, ok := process.Metadata[Metadata_Timestamp]; !ok {
@@ -326,13 +333,6 @@ func (p *Job) internalOutputResult(process *Process, result ProcessResult, lastT
 		process.Metadata[Metadata_TimestampCalculated] = true
 	} else {
 		retTime = process.Metadata[Metadata_Timestamp].(time.Time)
-	}
-
-	for _, pp := range sortedPluginPostProcess {
-		_, err := pp.PostProcess(process)
-		if err != nil {
-			return time.Time{}, err
-		}
 	}
 
 	createFunc := func(isBefore bool) error {
