@@ -221,6 +221,9 @@ func (p *Job) Finish() error {
 	// allows output flushing, like flushing network connections
 	p.result.OnFlush()
 
+	// close the result
+	p.result.OnClose()
+
 	return nil
 }
 

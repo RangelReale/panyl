@@ -17,7 +17,7 @@ type Processor struct {
 	pluginParseFormat []PluginParseFormat
 	pluginPostProcess []PluginPostProcess
 	pluginCreate      []PluginCreate
-	onJobFinished     []func(*Job) error
+	onJobFinished     []func(*Processor) error
 	appLogger         *slog.Logger
 
 	Logger Log
@@ -96,7 +96,7 @@ func (p *Processor) ProcessProvider(scanner LineProvider, result ProcessResult, 
 	}
 
 	for _, jobFinished := range p.onJobFinished {
-		_ = jobFinished(job)
+		_ = jobFinished(p)
 	}
 
 	return job.Finish()

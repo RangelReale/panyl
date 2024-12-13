@@ -51,7 +51,7 @@ func WithPlugins(plugin ...Plugin) Option {
 	}
 }
 
-func WithOnJobFinished(f func(*Job) error) Option {
+func WithOnJobFinished(f func(*Processor) error) Option {
 	return func(p *Processor) {
 		p.onJobFinished = append(p.onJobFinished, f)
 	}
