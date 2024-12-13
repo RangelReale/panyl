@@ -25,7 +25,7 @@ type Processor struct {
 
 func NewProcessor(options ...Option) *Processor {
 	ret := &Processor{
-		appLogger: slog.New(slog.NewTextHandler(os.Stdout, nil)),
+		appLogger: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})),
 	}
 	for _, o := range options {
 		o(ret)
