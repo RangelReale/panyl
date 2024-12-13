@@ -2,8 +2,9 @@ package panyl
 
 import (
 	"fmt"
-	"github.com/imdario/mergo"
 	"strings"
+
+	"github.com/imdario/mergo"
 )
 
 // Process is the result of parsing one or more lines
@@ -12,9 +13,9 @@ type Process struct {
 	LineCount int
 	Metadata  MapValue // is ALWAYS non-nil
 	Data      MapValue // is ALWAYS non-nil
-	Line      string
-	RawSource string // raw source from file
-	Source    string // source with Clean and Metadata plugins applied
+	Line      string   // line is the part of the line that might not be parsed
+	RawSource string   // raw source from file
+	Source    string   // source with Clean and Metadata plugins applied
 }
 
 func InitProcess(options ...InitProcessOption) *Process {

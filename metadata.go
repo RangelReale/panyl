@@ -14,6 +14,7 @@ const (
 	Metadata_Category            = "category"
 	Metadata_OriginalCategory    = "original_category" // [if a plugin changed a category, it can store the original here]
 	Metadata_Created             = "created"           // bool [whether the process was created instead of being in the log file]
+	Metadata_Skip                = "skip"              // bool [if true, the line will be skipped]
 )
 
 const (

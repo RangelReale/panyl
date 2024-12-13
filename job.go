@@ -335,6 +335,10 @@ func (p *Job) internalOutputResult(process *Process, result ProcessResult, lastT
 		retTime = process.Metadata[Metadata_Timestamp].(time.Time)
 	}
 
+	if process.Metadata.BoolValue(Metadata_Skip) {
+		return lastTime, nil
+	}
+
 	createFunc := func(isBefore bool) error {
 		// call create plugins
 		if create {
