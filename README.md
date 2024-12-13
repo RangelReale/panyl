@@ -83,7 +83,7 @@ func (o *Output) OnResult(p *panyl.Process) (cont bool) {
         // Extracted structure but no metadata
         dt, err := json.Marshal(p.Data)
         if err != nil {
-            fmt.Println("Error marshaling data to json: %s", err.Error())
+            fmt.Printf("Error marshaling data to json: %s\n", err.Error())
             return
         }
         out.WriteString(fmt.Sprintf("| %s", string(dt)))
