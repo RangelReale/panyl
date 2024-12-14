@@ -22,78 +22,81 @@ any Ansi color formatting from each line, and extracing application name informa
 package main
 
 import (
-    "bytes"
-    "encoding/json"
-    "fmt"
-    "github.com/RangelReale/panyl"
-    "github.com/RangelReale/panyl-plugins/parse"
-    "github.com/RangelReale/panyl/plugins/clean"
-    "github.com/RangelReale/panyl-plugins/metadata"
-    "github.com/RangelReale/panyl/plugins/structure"
-    "os"
-    "time"
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/RangelReale/panyl"
+	"github.com/RangelReale/panyl-plugins/parse"
+	"github.com/RangelReale/panyl/plugins/clean"
+	"github.com/RangelReale/panyl-plugins/metadata"
+	"github.com/RangelReale/panyl/plugins/structure"
 )
 
 func main() {
-    processor := panyl.NewProcessor(
-        panyl.WithPlugins(
-            &clean.AnsiEscape{},
-            &metadata.DockerCompose{},
-            &structure.JSON{},
-            &parse.GoLog{},
-            &parse.RubyLog{},
-            &parse.MongoLog{},
-            &parse.NGINXErrorLog{},
-        ),
-        // may use a logger when debugging, it outputs each source line and parsed processes
-        // panyl.WithLogger(panyl.NewStdLogOutput()),
-    )
+	ctx := context.Background()
+	processor := panyl.NewProcessor(
+		panyl.WithPlugins(
+			&clean.AnsiEscape{},
+			&metadata.DockerCompose{},
+			&structure.JSON{},
+			&parse.GoLog{},
+			&parse.RubyLog{},
+			&parse.MongoLog{},
+			&parse.NGINXErrorLog{},
+		),
+		// may use a logger when debugging, it outputs each source line and parsed processes
+		// panyl.WithLogger(panyl.NewStdLogOutput()),
+	)
 
-    err := processor.Process(os.Stdin, &Output{}, panyl.WithLineLimit(0, 100))
-    if err != nil {
-        fmt.Fprintf(os.Stderr, "Error processing input: %s", err.Error())
-    }
+	err := processor.Process(ctx, os.Stdin, &Output{}, panyl.WithLineLimit(0, 100))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error processing input: %s", err.Error())
+	}
 }
 
 type Output struct {
 }
 
-func (o *Output) OnResult(p *panyl.Process) (cont bool) {
-    var out bytes.Buffer
+func (o *Output) OnResult(ctx context.Context, p *panyl.Process) (cont bool) {
+	var out bytes.Buffer
 
-    // timestamp
-    if ts, ok := p.Metadata[panyl.Metadata_Timestamp]; ok {
-        out.WriteString(fmt.Sprintf("%s ", ts.(time.Time).Local().Format("2006-01-02 15:04:05.000")))
-    }
+	// timestamp
+	if ts, ok := p.Metadata[panyl.MetadataTimestamp]; ok {
+		out.WriteString(fmt.Sprintf("%s ", ts.(time.Time).Local().Format("2006-01-02 15:04:05.000")))
+	}
 
-    // level
-    if level := p.Metadata.StringValue(panyl.Metadata_Level); level != "" {
-        out.WriteString(fmt.Sprintf("[%s] ", level))
-    }
+	// level
+	if level := p.Metadata.StringValue(panyl.MetadataLevel); level != "" {
+		out.WriteString(fmt.Sprintf("[%s] ", level))
+	}
 
-    // category
-    if category := p.Metadata.StringValue(panyl.Metadata_Category); category != "" {
-        out.WriteString(fmt.Sprintf("{{%s}} ", category))
-    }
+	// category
+	if category := p.Metadata.StringValue(panyl.MetadataCategory); category != "" {
+		out.WriteString(fmt.Sprintf("{{%s}} ", category))
+	}
 
-    // message
-    if msg := p.Metadata.StringValue(panyl.Metadata_Message); msg != "" {
-        out.WriteString(msg)
-    } else if len(p.Data) > 0 {
-        // Extracted structure but no metadata
-        dt, err := json.Marshal(p.Data)
-        if err != nil {
-            fmt.Printf("Error marshaling data to json: %s\n", err.Error())
-            return
-        }
-        out.WriteString(fmt.Sprintf("| %s", string(dt)))
-    } else if p.Line != "" {
-        // Show raw line if available
-        out.WriteString(p.Line)
-    }
+	// message
+	if msg := p.Metadata.StringValue(panyl.MetadataMessage); msg != "" {
+		out.WriteString(msg)
+	} else if len(p.Data) > 0 {
+		// Extracted structure but no metadata
+		dt, err := json.Marshal(p.Data)
+		if err != nil {
+			fmt.Printf("Error marshaling data to json: %s\n", err.Error())
+			return
+		}
+		out.WriteString(fmt.Sprintf("| %s", string(dt)))
+	} else if p.Line != "" {
+		// Show raw line if available
+		out.WriteString(p.Line)
+	}
 
-    fmt.Println(out.String())
-    return true
+	fmt.Println(out.String())
+	return true
 }
 ```
 
@@ -106,7 +109,7 @@ func (o *Output) OnResult(p *panyl.Process) (cont bool) {
 // Change result.Line if you need to modify the line.
 // You can set result.Metadata to allow other plugins to detect the change.
 type PluginClean interface {
-    Clean(result *Process) (bool, error)
+    Clean(ctx context.Context, result *Process) (bool, error)
 }
 ```
 
@@ -117,7 +120,7 @@ type PluginClean interface {
 // Set result.Metadata with the detected data.
 // You can also change result.Line if you need to remove the metadata from the line.
 type PluginMetadata interface {
-    ExtractMetadata(result *Process) (bool, error)
+    ExtractMetadata(ctx context.Context, result *Process) (bool, error)
 }
 ```
 
@@ -128,7 +131,7 @@ type PluginMetadata interface {
 // The full text must be a complete structure, partial match should not be supported.
 // You should take in account the lines Metdatada/Data and apply them to result at your convenience.
 type PluginStructure interface {
-    ExtractStructure(lines ProcessLines, result *Process) (bool, error)
+    ExtractStructure(ctx context.Context, lines ProcessLines, result *Process) (bool, error)
 }
 ```
 
@@ -139,7 +142,7 @@ type PluginStructure interface {
 // The full text must be completely parsed, partial match should not be supported.
 // You should take in account the lines Metdatada/Data and apply them to result at your convenience.
 type PluginParse interface {
-    ExtractParse(lines ProcessLines, result *Process) (bool, error)
+    ExtractParse(ctx context.Context, lines ProcessLines, result *Process) (bool, error)
 }
 ```
 
@@ -149,7 +152,7 @@ type PluginParse interface {
 // PluginSequence allows checking if 2 processes breaks a sequence, for example, if they belong to different
 // applications, given it is possible to detect this.
 type PluginSequence interface {
-    BlockSequence(lastp, p *Process) bool
+    BlockSequence(ctx context.Context, lastp, p *Process) bool
 }
 ```
 
@@ -163,7 +166,7 @@ type PluginSequence interface {
 // The plugin can be called multiple times for the same set of lines, so don't try to detect more if you
 // find a line that don't match, you will be called again after the unmatched line.
 type PluginConsolidate interface {
-    Consolidate(lines ProcessLines, result *Process) (_ bool, topLines int, _ error)
+    Consolidate(ctx context.Context, lines ProcessLines, result *Process) (_ bool, topLines int, _ error)
 }
 ```
 
@@ -174,7 +177,7 @@ type PluginConsolidate interface {
 // detecting some format from a raw structure (JSON or XML), for example, detecting the Apache log format from
 // the parsed JSON data.
 type PluginParseFormat interface {
-    ParseFormat(result *Process) (bool, error)
+    ParseFormat(ctx context.Context, result *Process) (bool, error)
 }
 ```
 
@@ -186,8 +189,8 @@ type PluginParseFormat interface {
 // This is called after PluginPostProcess, and PluginPostProcess is also called for each item.
 // Metadata_Created is set as true for items created by these functions.
 type PluginCreate interface {
-    CreateBefore(result *Process) ([]*Process, error)
-    CreateAfter(result *Process) ([]*Process, error)
+    CreateBefore(ctx context.Context, result *Process) ([]*Process, error)
+    CreateAfter(ctx context.Context, result *Process) ([]*Process, error)
 }
 ```
 
@@ -201,7 +204,7 @@ type PluginCreate interface {
 // as limits.
 type PluginPostProcess interface {
     PostProcessOrder() int
-    PostProcess(result *Process) (bool, error)
+    PostProcess(ctx context.Context, result *Process) (bool, error)
 }
 ```
 
