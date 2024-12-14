@@ -3,7 +3,7 @@ package consolidate
 import (
 	"context"
 
-	"github.com/RangelReale/panyl"
+	"github.com/RangelReale/panyl/v2"
 )
 
 // JoinAllLines consolidates all consecutive non-parsed lines in a single result

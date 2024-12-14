@@ -3,8 +3,8 @@ package clean
 import (
 	"context"
 
-	"github.com/RangelReale/panyl"
-	"github.com/RangelReale/panyl/util"
+	"github.com/RangelReale/panyl/v2"
+	"github.com/RangelReale/panyl/v2/util"
 )
 
 // AnsiEscape implements PluginClean to remove ansi-escapes from the line

@@ -3,7 +3,7 @@ package metadata
 import (
 	"context"
 
-	"github.com/RangelReale/panyl"
+	"github.com/RangelReale/panyl/v2"
 )
 
 // ForceApplication adds a Metadata_Application to the process metadata if it isn't set already.

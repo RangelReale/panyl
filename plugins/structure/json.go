@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/RangelReale/panyl"
+	"github.com/RangelReale/panyl/v2"
 	"github.com/imdario/mergo"
 )
 

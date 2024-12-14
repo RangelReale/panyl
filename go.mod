@@ -1,4 +1,4 @@
-module github.com/RangelReale/panyl
+module github.com/RangelReale/panyl/v2
 
 go 1.23
 

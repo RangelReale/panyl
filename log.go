@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/RangelReale/panyl/util"
+	"github.com/RangelReale/panyl/v2/util"
 )
 
 // Log allows debugging each step of the processing
