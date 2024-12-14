@@ -1,21 +1,23 @@
 package structure
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/RangelReale/panyl"
 	"github.com/imdario/mergo"
-	"strings"
 )
-
-var _ panyl.PluginStructure = (*JSON)(nil)
 
 // JSON extracts JSON data from the entire line.
 // No format detection is made besides being a valid JSON string.
 type JSON struct {
 }
 
-func (m *JSON) ExtractStructure(lines panyl.ProcessLines, result *panyl.Process) (bool, error) {
+var _ panyl.PluginStructure = (*JSON)(nil)
+
+func (m *JSON) ExtractStructure(ctx context.Context, lines panyl.ProcessLines, result *panyl.Process) (bool, error) {
 	jdec := json.NewDecoder(strings.NewReader(lines.Line()))
 	jdata := map[string]interface{}{}
 	err := jdec.Decode(&jdata)
@@ -37,7 +39,7 @@ func (m *JSON) ExtractStructure(lines panyl.ProcessLines, result *panyl.Process)
 		return false, fmt.Errorf("Error merging structs: %v", err)
 	}
 
-	result.Metadata[panyl.Metadata_Structure] = panyl.MetadataStructure_JSON
+	result.Metadata[panyl.MetadataStructure] = panyl.MetadataStructureJSON
 
 	return true, nil
 }

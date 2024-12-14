@@ -2,6 +2,7 @@ package panyl
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 )
@@ -23,7 +24,7 @@ type LineProvider interface {
 	// After Scan returns false, the Err method will return any error that
 	// occurred during scanning, except that if it was io.EOF, Err
 	// will return nil.
-	Scan() bool
+	Scan(ctx context.Context) bool
 }
 
 // ReaderLineProvider is a LineProvider that reads from an io.Reader
@@ -49,7 +50,7 @@ func (r *ReaderLineProvider) Line() interface{} {
 	return r.scanner.Text()
 }
 
-func (r *ReaderLineProvider) Scan() bool {
+func (r *ReaderLineProvider) Scan(ctx context.Context) bool {
 	return r.scanner.Scan()
 }
 
@@ -80,7 +81,7 @@ func (r *StaticLineProvider) Line() interface{} {
 	return nil
 }
 
-func (r *StaticLineProvider) Scan() bool {
+func (r *StaticLineProvider) Scan(ctx context.Context) bool {
 	if r.err != nil {
 		return false
 	}

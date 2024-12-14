@@ -1,15 +1,19 @@
 package panyl
 
 import (
-	"github.com/stretchr/testify/assert"
+	"context"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLineProvider_IoReader(t *testing.T) {
+	ctx := context.Background()
+
 	lp := NewReaderLineProvider(strings.NewReader("first\nsecond\nthird\n"), DefaultScannerBufferSize)
 	ct := 0
-	for lp.Scan() {
+	for lp.Scan(ctx) {
 		switch ct {
 		case 0:
 			assert.Equal(t, "first", lp.Line().(string))
@@ -25,9 +29,11 @@ func TestLineProvider_IoReader(t *testing.T) {
 }
 
 func TestLineProvider_Static(t *testing.T) {
+	ctx := context.Background()
+
 	lp := NewStaticLineProvider([]interface{}{"first", "second", "third"})
 	ct := 0
-	for lp.Scan() {
+	for lp.Scan(ctx) {
 		switch ct {
 		case 0:
 			assert.Equal(t, "first", lp.Line().(string))

@@ -1,6 +1,7 @@
 package panyl
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,7 +42,7 @@ func NewJob(processor *Processor, result ProcessResult, options ...JobOption) *J
 	return ret
 }
 
-func (p *Job) ProcessLine(line interface{}) error {
+func (p *Job) ProcessLine(ctx context.Context, line interface{}) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
@@ -80,7 +81,7 @@ func (p *Job) ProcessLine(line interface{}) error {
 
 	// PROCESS: Clean
 	for _, pclean := range p.processor.pluginClean {
-		_, err := pclean.Clean(process)
+		_, err := pclean.Clean(ctx, process)
 		if err != nil {
 			return err
 		}
@@ -95,12 +96,12 @@ func (p *Job) ProcessLine(line interface{}) error {
 
 	// Log source line
 	if p.processor.Logger != nil {
-		p.processor.Logger.LogSourceLine(p.lineno, process.Line, sourceLine)
+		p.processor.Logger.LogSourceLine(ctx, p.lineno, process.Line, sourceLine)
 	}
 
 	// PROCESS: Extract metadata
 	for _, pmetadata := range p.processor.pluginMetadata {
-		_, err := pmetadata.ExtractMetadata(process)
+		_, err := pmetadata.ExtractMetadata(ctx, process)
 		if err != nil {
 			return err
 		}
@@ -122,7 +123,7 @@ func (p *Job) ProcessLine(line interface{}) error {
 structureloop:
 	for curline := len(p.lines) - 1; curline >= 0; curline-- {
 		for _, pstructure := range p.processor.pluginStructure {
-			if ok, err := pstructure.ExtractStructure(p.lines[curline:], process); err != nil {
+			if ok, err := pstructure.ExtractStructure(ctx, p.lines[curline:], process); err != nil {
 				return err
 			} else if ok {
 				lineProcessed = true
@@ -138,7 +139,7 @@ structureloop:
 	lineloop:
 		for curline := len(p.lines) - 1; curline >= 0; curline-- {
 			for _, pparse := range p.processor.pluginParse {
-				if ok, err := pparse.ExtractParse(p.lines[curline:], process); err != nil {
+				if ok, err := pparse.ExtractParse(ctx, p.lines[curline:], process); err != nil {
 					return err
 				} else if ok {
 					lineProcessed = true
@@ -158,18 +159,18 @@ structureloop:
 		}
 		if p.lastTime.IsZero() {
 			// try to get the timestamp from the processed line if time is Zero
-			if pts, ok := process.Metadata[Metadata_Timestamp]; ok {
+			if pts, ok := process.Metadata[MetadataTimestamp]; ok {
 				p.lastTime = pts.(time.Time)
 			}
 		}
 		// process previous lines
 		var err error
-		_, err = p.processResultLines(p.lines[:lineFound], p.result, p.lastTime, p.sortedPluginPostProcess)
+		_, err = p.processResultLines(ctx, p.lines[:lineFound], p.result, p.lastTime, p.sortedPluginPostProcess)
 		if err != nil {
 			return err
 		}
 		// process current line
-		p.lastTime, err = p.outputResult(process, p.result, p.lastTime, p.sortedPluginPostProcess)
+		p.lastTime, err = p.outputResult(ctx, process, p.result, p.lastTime, p.sortedPluginPostProcess)
 		if err != nil {
 			return err
 		}
@@ -179,7 +180,7 @@ structureloop:
 			// check if there is any sequence block in the last 2 lines
 			blockSequence := false
 			for _, psequence := range p.processor.pluginSequence {
-				if bseq := psequence.BlockSequence(p.lines[len(p.lines)-2], p.lines[len(p.lines)-1]); bseq {
+				if bseq := psequence.BlockSequence(ctx, p.lines[len(p.lines)-2], p.lines[len(p.lines)-1]); bseq {
 					blockSequence = true
 					break
 				}
@@ -188,7 +189,7 @@ structureloop:
 			if blockSequence {
 				// process previous lines and leave only the current line
 				var err error
-				p.lastTime, err = p.processResultLines(p.lines[:len(p.lines)-1], p.result, p.lastTime, p.sortedPluginPostProcess)
+				p.lastTime, err = p.processResultLines(ctx, p.lines[:len(p.lines)-1], p.result, p.lastTime, p.sortedPluginPostProcess)
 				if err != nil {
 					return err
 				}
@@ -199,7 +200,7 @@ structureloop:
 
 	if len(p.lines) > p.MaxBacklogLines {
 		var err error
-		p.lastTime, err = p.processResultLines(p.lines, p.result, p.lastTime, p.sortedPluginPostProcess)
+		p.lastTime, err = p.processResultLines(ctx, p.lines, p.result, p.lastTime, p.sortedPluginPostProcess)
 		if err != nil {
 			return err
 		}
@@ -209,20 +210,20 @@ structureloop:
 	return nil
 }
 
-func (p *Job) Finish() error {
+func (p *Job) Finish(ctx context.Context) error {
 	if len(p.lines) > 0 {
 		// process any lines left
-		_, err := p.processResultLines(p.lines, p.result, p.lastTime, p.sortedPluginPostProcess)
+		_, err := p.processResultLines(ctx, p.lines, p.result, p.lastTime, p.sortedPluginPostProcess)
 		if err != nil {
 			return err
 		}
 	}
 
 	// allows output flushing, like flushing network connections
-	p.result.OnFlush()
+	p.result.OnFlush(ctx)
 
 	// close the result
-	p.result.OnClose()
+	p.result.OnClose(ctx)
 
 	return nil
 }
@@ -253,7 +254,7 @@ func (p *Job) ensureProcess(process *Process) {
 }
 
 // processResultLines process previous lines, trying to consolidate using Consolidate plugins, and outputs each result.
-func (p *Job) processResultLines(lines ProcessLines, result ProcessResult, lastTime time.Time,
+func (p *Job) processResultLines(ctx context.Context, lines ProcessLines, result ProcessResult, lastTime time.Time,
 	sortedPluginPostProcess []PluginPostProcess) (time.Time, error) {
 	var rts = lastTime
 	startLine := 0
@@ -261,7 +262,7 @@ func (p *Job) processResultLines(lines ProcessLines, result ProcessResult, lastT
 		processed := false
 		for _, pc := range p.processor.pluginConsolidate {
 			consolidateProcess := p.initProcess(lines[startLine].LineNo, "")
-			if ok, topLines, err := pc.Consolidate(lines[startLine:], consolidateProcess); err != nil {
+			if ok, topLines, err := pc.Consolidate(ctx, lines[startLine:], consolidateProcess); err != nil {
 				return time.Time{}, err
 			} else if ok {
 				if topLines > len(lines)-startLine {
@@ -272,7 +273,7 @@ func (p *Job) processResultLines(lines ProcessLines, result ProcessResult, lastT
 				if p.IncludeSource {
 					consolidateProcess.Source = ProcessLines(lines[startLine : startLine+topLines]).Source()
 				}
-				rts, err = p.outputResult(consolidateProcess, result, rts, sortedPluginPostProcess)
+				rts, err = p.outputResult(ctx, consolidateProcess, result, rts, sortedPluginPostProcess)
 				if err != nil {
 					return time.Time{}, err
 				}
@@ -284,7 +285,7 @@ func (p *Job) processResultLines(lines ProcessLines, result ProcessResult, lastT
 		if !processed {
 			lines[startLine].LineCount = 1
 			var err error
-			rts, err = p.outputResult(lines[startLine], result, rts, sortedPluginPostProcess)
+			rts, err = p.outputResult(ctx, lines[startLine], result, rts, sortedPluginPostProcess)
 			if err != nil {
 				return time.Time{}, err
 			}
@@ -295,12 +296,12 @@ func (p *Job) processResultLines(lines ProcessLines, result ProcessResult, lastT
 }
 
 // outputResult post-processes the Process and outputs the result.
-func (p *Job) outputResult(process *Process, result ProcessResult, lastTime time.Time,
+func (p *Job) outputResult(ctx context.Context, process *Process, result ProcessResult, lastTime time.Time,
 	sortedPluginPostProcess []PluginPostProcess) (time.Time, error) {
 	// if no format was detected, call the ParseFormat plugins
-	if _, ok := process.Metadata[Metadata_Format]; !ok {
+	if _, ok := process.Metadata[MetadataFormat]; !ok {
 		for _, pp := range p.processor.pluginParseFormat {
-			ok, err := pp.ParseFormat(process)
+			ok, err := pp.ParseFormat(ctx, process)
 			if err != nil {
 				return time.Time{}, err
 			} else if ok {
@@ -309,14 +310,14 @@ func (p *Job) outputResult(process *Process, result ProcessResult, lastTime time
 		}
 	}
 
-	return p.internalOutputResult(process, result, lastTime, true, sortedPluginPostProcess)
+	return p.internalOutputResult(ctx, process, result, lastTime, true, sortedPluginPostProcess)
 }
 
 // outputResult post-processes the Process and outputs the result.
-func (p *Job) internalOutputResult(process *Process, result ProcessResult, lastTime time.Time, create bool,
+func (p *Job) internalOutputResult(ctx context.Context, process *Process, result ProcessResult, lastTime time.Time, create bool,
 	sortedPluginPostProcess []PluginPostProcess) (time.Time, error) {
 	for _, pp := range sortedPluginPostProcess {
-		_, err := pp.PostProcess(process)
+		_, err := pp.PostProcess(ctx, process)
 		if err != nil {
 			return time.Time{}, err
 		}
@@ -324,18 +325,18 @@ func (p *Job) internalOutputResult(process *Process, result ProcessResult, lastT
 
 	retTime := lastTime
 	// check for timestamp in metadata, add the last one if not available
-	if _, ok := process.Metadata[Metadata_Timestamp]; !ok {
+	if _, ok := process.Metadata[MetadataTimestamp]; !ok {
 		if lastTime.IsZero() {
-			process.Metadata[Metadata_Timestamp] = time.Now()
+			process.Metadata[MetadataTimestamp] = time.Now()
 		} else {
-			process.Metadata[Metadata_Timestamp] = lastTime
+			process.Metadata[MetadataTimestamp] = lastTime
 		}
-		process.Metadata[Metadata_TimestampCalculated] = true
+		process.Metadata[MetadataTimestampCalculated] = true
 	} else {
-		retTime = process.Metadata[Metadata_Timestamp].(time.Time)
+		retTime = process.Metadata[MetadataTimestamp].(time.Time)
 	}
 
-	if process.Metadata.BoolValue(Metadata_Skip) {
+	if process.Metadata.BoolValue(MetadataSkip) {
 		return lastTime, nil
 	}
 
@@ -346,9 +347,9 @@ func (p *Job) internalOutputResult(process *Process, result ProcessResult, lastT
 				var items []*Process
 				var err error
 				if isBefore {
-					items, err = pp.CreateBefore(process)
+					items, err = pp.CreateBefore(ctx, process)
 				} else {
-					items, err = pp.CreateAfter(process)
+					items, err = pp.CreateAfter(ctx, process)
 				}
 				if err != nil {
 					if err != nil {
@@ -356,8 +357,8 @@ func (p *Job) internalOutputResult(process *Process, result ProcessResult, lastT
 					}
 				}
 				for _, item := range items {
-					item.Metadata[Metadata_Created] = true
-					_, err = p.internalOutputResult(item, result, lastTime, false, sortedPluginPostProcess)
+					item.Metadata[MetadataCreated] = true
+					_, err = p.internalOutputResult(ctx, item, result, lastTime, false, sortedPluginPostProcess)
 					if err != nil {
 						if err != nil {
 							return err
@@ -376,9 +377,9 @@ func (p *Job) internalOutputResult(process *Process, result ProcessResult, lastT
 	}
 
 	if p.processor.Logger != nil {
-		p.processor.Logger.LogProcess(process)
+		p.processor.Logger.LogProcess(ctx, process)
 	}
-	result.OnResult(process)
+	result.OnResult(ctx, process)
 
 	// create Create plugin after outputting current result
 	err = createFunc(false)

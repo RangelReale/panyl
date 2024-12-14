@@ -3,9 +3,9 @@ package panyl
 import "log/slog"
 
 const (
-	PostProcessOrder_First   = 0
-	PostProcessOrder_Last    = 10
-	PostProcessOrder_Default = 5
+	PostProcessOrderFirst   = 0
+	PostProcessOrderLast    = 10
+	PostProcessOrderDefault = 5
 )
 
 type Option func(p *Processor)

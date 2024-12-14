@@ -1,10 +1,12 @@
 package panyl
 
 import (
+	"context"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestProcessor_RegisterPlugin(t *testing.T) {
@@ -24,12 +26,14 @@ func TestProcessor_RegisterPlugin(t *testing.T) {
 }
 
 func TestProcessor_CreatePlugin(t *testing.T) {
+	ctx := context.Background()
+
 	p := NewProcessor()
 	pl := &CreatePluginTest{}
 	p.RegisterPlugin(pl)
 
 	res := &ProcessResultArray{}
-	err := p.Process(strings.NewReader(`line`), res)
+	err := p.Process(ctx, strings.NewReader(`line`), res)
 
 	assert.NoError(t, err)
 
@@ -40,12 +44,14 @@ func TestProcessor_CreatePlugin(t *testing.T) {
 }
 
 func TestProcessor_CreatePlugin_LineProvider(t *testing.T) {
+	ctx := context.Background()
+
 	p := NewProcessor()
 	pl := &CreatePluginTest{}
 	p.RegisterPlugin(pl)
 
 	res := &ProcessResultArray{}
-	err := p.ProcessProvider(NewStaticLineProvider([]interface{}{
+	err := p.ProcessProvider(ctx, NewStaticLineProvider([]interface{}{
 		InitProcess(WithInitLine("line")),
 	}), res)
 
@@ -58,6 +64,8 @@ func TestProcessor_CreatePlugin_LineProvider(t *testing.T) {
 }
 
 func TestProcessor_PostProcessOrder(t *testing.T) {
+	ctx := context.Background()
+
 	p := NewProcessor()
 	p.RegisterPlugin(&PostProcessPluginTest{5})
 	p.RegisterPlugin(&PostProcessPluginTest{2})
@@ -67,7 +75,7 @@ func TestProcessor_PostProcessOrder(t *testing.T) {
 	p.RegisterPlugin(&PostProcessPluginTest{7})
 
 	res := &ProcessResultArray{}
-	err := p.Process(strings.NewReader(`line`), res)
+	err := p.Process(ctx, strings.NewReader(`line`), res)
 
 	assert.NoError(t, err)
 
@@ -81,47 +89,47 @@ type AllPlugins struct {
 
 func (ap AllPlugins) IsPanylPlugin() {}
 
-func (ap AllPlugins) Clean(result *Process) (bool, error) {
+func (ap AllPlugins) Clean(ctx context.Context, result *Process) (bool, error) {
 	return false, nil
 }
 
-func (ap AllPlugins) ExtractMetadata(result *Process) (bool, error) {
+func (ap AllPlugins) ExtractMetadata(ctx context.Context, result *Process) (bool, error) {
 	return false, nil
 }
 
-func (ap AllPlugins) ExtractStructure(lines ProcessLines, result *Process) (bool, error) {
+func (ap AllPlugins) ExtractStructure(ctx context.Context, lines ProcessLines, result *Process) (bool, error) {
 	return false, nil
 }
 
-func (ap AllPlugins) ExtractParse(lines ProcessLines, result *Process) (bool, error) {
+func (ap AllPlugins) ExtractParse(ctx context.Context, lines ProcessLines, result *Process) (bool, error) {
 	return false, nil
 }
 
-func (ap AllPlugins) BlockSequence(lastp, p *Process) bool {
+func (ap AllPlugins) BlockSequence(ctx context.Context, lastp, p *Process) bool {
 	return false
 }
 
-func (ap AllPlugins) Consolidate(lines ProcessLines, result *Process) (bool, int, error) {
+func (ap AllPlugins) Consolidate(ctx context.Context, lines ProcessLines, result *Process) (bool, int, error) {
 	return false, -1, nil
 }
 
-func (ap AllPlugins) ParseFormat(result *Process) (bool, error) {
+func (ap AllPlugins) ParseFormat(ctx context.Context, result *Process) (bool, error) {
 	return false, nil
 }
 
-func (ap AllPlugins) CreateBefore(result *Process) ([]*Process, error) {
+func (ap AllPlugins) CreateBefore(ctx context.Context, result *Process) ([]*Process, error) {
 	return nil, nil
 }
 
-func (ap AllPlugins) CreateAfter(result *Process) ([]*Process, error) {
+func (ap AllPlugins) CreateAfter(ctx context.Context, result *Process) ([]*Process, error) {
 	return nil, nil
 }
 
 func (ap AllPlugins) PostProcessOrder() int {
-	return PostProcessOrder_Default
+	return PostProcessOrderDefault
 }
 
-func (ap AllPlugins) PostProcess(result *Process) (bool, error) {
+func (ap AllPlugins) PostProcess(ctx context.Context, result *Process) (bool, error) {
 	return false, nil
 }
 
@@ -131,24 +139,24 @@ type CreatePluginTest struct {
 
 func (pt CreatePluginTest) IsPanylPlugin() {}
 
-func (pt CreatePluginTest) CreateBefore(result *Process) ([]*Process, error) {
+func (pt CreatePluginTest) CreateBefore(ctx context.Context, result *Process) ([]*Process, error) {
 	return []*Process{
 		InitProcess(WithInitLine("line-before")),
 	}, nil
 }
 
-func (pt CreatePluginTest) CreateAfter(result *Process) ([]*Process, error) {
+func (pt CreatePluginTest) CreateAfter(ctx context.Context, result *Process) ([]*Process, error) {
 	return []*Process{
 		InitProcess(WithInitLine("line-after")),
 	}, nil
 }
 
 func (pt CreatePluginTest) PostProcessOrder() int {
-	return PostProcessOrder_Default
+	return PostProcessOrderDefault
 }
 
-func (pt CreatePluginTest) PostProcess(result *Process) (bool, error) {
-	if result.Metadata.BoolValue(Metadata_Created) {
+func (pt CreatePluginTest) PostProcess(ctx context.Context, result *Process) (bool, error) {
+	if result.Metadata.BoolValue(MetadataCreated) {
 		result.Line += "-create"
 	} else {
 		result.Line += "-default"
@@ -167,7 +175,7 @@ func (pt PostProcessPluginTest) PostProcessOrder() int {
 	return pt.order
 }
 
-func (pt PostProcessPluginTest) PostProcess(result *Process) (bool, error) {
+func (pt PostProcessPluginTest) PostProcess(ctx context.Context, result *Process) (bool, error) {
 	result.Line += fmt.Sprintf("_%d", pt.order)
 	return true, nil
 }

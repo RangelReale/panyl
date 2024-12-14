@@ -2,16 +2,18 @@ package panyl
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	"github.com/RangelReale/panyl/util"
 	"io"
 	"os"
+
+	"github.com/RangelReale/panyl/util"
 )
 
 // Log allows debugging each step of the processing
 type Log interface {
-	LogSourceLine(n int, line, rawLine string)
-	LogProcess(p *Process)
+	LogSourceLine(ctx context.Context, n int, line, rawLine string)
+	LogProcess(ctx context.Context, p *Process)
 }
 
 // LogOutput writes log to the passed io.Writer
@@ -28,11 +30,11 @@ func NewStdLogOutput() *LogOutput {
 	return &LogOutput{w: os.Stdout}
 }
 
-func (l LogOutput) LogSourceLine(n int, line, rawLine string) {
+func (l LogOutput) LogSourceLine(ctx context.Context, n int, line, rawLine string) {
 	_, _ = fmt.Fprintf(l.w, "@@@ SOURCE LINE [%d]: '%s' @@@\n", n, line)
 }
 
-func (l LogOutput) LogProcess(p *Process) {
+func (l LogOutput) LogProcess(ctx context.Context, p *Process) {
 	var lineno string
 	if p.LineCount > 1 {
 		lineno = fmt.Sprintf("[%d-%d]", p.LineNo, p.LineNo+p.LineCount-1)

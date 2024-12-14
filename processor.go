@@ -1,6 +1,7 @@
 package panyl
 
 import (
+	"context"
 	"errors"
 	"io"
 	"log/slog"
@@ -74,15 +75,15 @@ func (p *Processor) RegisterPlugin(plugin Plugin) {
 	}
 }
 
-func (p *Processor) Process(r io.Reader, result ProcessResult, options ...JobOption) error {
-	return p.ProcessProvider(NewReaderLineProvider(r, DefaultScannerBufferSize), result, options...)
+func (p *Processor) Process(ctx context.Context, r io.Reader, result ProcessResult, options ...JobOption) error {
+	return p.ProcessProvider(ctx, NewReaderLineProvider(r, DefaultScannerBufferSize), result, options...)
 }
 
-func (p *Processor) ProcessProvider(scanner LineProvider, result ProcessResult, options ...JobOption) error {
+func (p *Processor) ProcessProvider(ctx context.Context, scanner LineProvider, result ProcessResult, options ...JobOption) error {
 	job := NewJob(p, result, options...)
 	var err error
-	for scanner.Scan() {
-		err = job.ProcessLine(scanner.Line())
+	for scanner.Scan(ctx) {
+		err = job.ProcessLine(ctx, scanner.Line())
 		if err != nil {
 			if errors.Is(err, ErrFinished) {
 				break
@@ -99,5 +100,5 @@ func (p *Processor) ProcessProvider(scanner LineProvider, result ProcessResult, 
 		_ = jobFinished(p)
 	}
 
-	return job.Finish()
+	return job.Finish(ctx)
 }
