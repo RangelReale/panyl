@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log/slog"
-	"os"
 )
 
 type Processor struct {
@@ -18,31 +16,17 @@ type Processor struct {
 	pluginParseFormat []PluginParseFormat
 	pluginPostProcess []PluginPostProcess
 	pluginCreate      []PluginCreate
-	onJobFinished     []func(*Processor) error
-	appLogger         *slog.Logger
+	onJobFinished     []func(context.Context, *Processor) error
 
 	Logger Log
 }
 
 func NewProcessor(options ...Option) *Processor {
-	ret := &Processor{
-		appLogger: slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})),
-	}
+	ret := &Processor{}
 	for _, o := range options {
 		o(ret)
 	}
 	return ret
-}
-
-func (p *Processor) AppLogger() *slog.Logger {
-	return p.appLogger
-}
-
-func (p *Processor) SetAppLogger(logger *slog.Logger) {
-	if logger == nil {
-		return
-	}
-	p.appLogger = logger
 }
 
 func (p *Processor) RegisterPlugin(plugin Plugin) {
@@ -97,7 +81,7 @@ func (p *Processor) ProcessProvider(ctx context.Context, scanner LineProvider, r
 	}
 
 	for _, jobFinished := range p.onJobFinished {
-		_ = jobFinished(p)
+		_ = jobFinished(ctx, p)
 	}
 
 	return job.Finish(ctx)
