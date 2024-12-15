@@ -44,19 +44,4 @@ func (m *JSON) ExtractStructure(ctx context.Context, lines panyl.ProcessLines, r
 	return true, nil
 }
 
-/*
-func (m *JSON) ExtractStructureLines(lines []*panyl.Process, p *panyl.Process) (bool, int, error) {
-	for startLine := 0; startLine < len(lines); startLine++ {
-		ok, err := m.extractStructure(strings.Join(lines[startLine:], ""), p)
-		if err != nil {
-			return false, 0, err
-		}
-		if ok {
-			return true, len(lines) - startLine, nil
-		}
-	}
-	return false, 0, nil
-}
-*/
-
 func (m JSON) IsPanylPlugin() {}
