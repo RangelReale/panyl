@@ -31,9 +31,9 @@ import (
 
     "github.com/RangelReale/panyl/v2"
     "github.com/RangelReale/panyl-plugins/v2/parse"
-    "github.com/RangelReale/panyl/plugins/v2/clean"
+    "github.com/RangelReale/panyl/v2/plugins/clean"
     "github.com/RangelReale/panyl-plugins/v2/metadata"
-    "github.com/RangelReale/panyl/plugins/v2/structure"
+    "github.com/RangelReale/panyl/v2/plugins/structure"
 )
 
 func main() {
