@@ -3,10 +3,10 @@ package panyl
 import "context"
 
 // ProcessResultFunc is a helper to use ProcessResult as a function
-type ProcessResultFunc func(p *Item)
+type ProcessResultFunc func(item *Item)
 
-func (pr ProcessResultFunc) OnResult(ctx context.Context, p *Item) bool {
-	pr(p)
+func (pr ProcessResultFunc) OnResult(ctx context.Context, item *Item) bool {
+	pr(item)
 	return true
 }
 
@@ -19,8 +19,8 @@ type ProcessResultArray struct {
 	List []*Item
 }
 
-func (pr *ProcessResultArray) OnResult(ctx context.Context, p *Item) bool {
-	pr.List = append(pr.List, p)
+func (pr *ProcessResultArray) OnResult(ctx context.Context, item *Item) bool {
+	pr.List = append(pr.List, item)
 	return true
 }
 
@@ -32,7 +32,7 @@ func (pr ProcessResultArray) OnClose(ctx context.Context) {}
 type ProcessResultNull struct {
 }
 
-func (pr *ProcessResultNull) OnResult(ctx context.Context, p *Item) bool {
+func (pr *ProcessResultNull) OnResult(ctx context.Context, item *Item) bool {
 	return true
 }
 

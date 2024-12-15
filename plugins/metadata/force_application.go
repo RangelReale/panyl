@@ -22,9 +22,9 @@ func (m *ForceApplication) ExtractMetadata(ctx context.Context, result *panyl.It
 	return true, nil
 }
 
-func (m *ForceApplication) BlockSequence(ctx context.Context, lastp, p *panyl.Item) bool {
+func (m *ForceApplication) BlockSequence(ctx context.Context, lastp, item *panyl.Item) bool {
 	// block sequence if application changed
-	return lastp.Metadata.StringValue(panyl.MetadataApplication) != p.Metadata.StringValue(panyl.MetadataApplication)
+	return lastp.Metadata.StringValue(panyl.MetadataApplication) != item.Metadata.StringValue(panyl.MetadataApplication)
 }
 
 func (m ForceApplication) IsPanylPlugin() {}
