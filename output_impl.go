@@ -30,7 +30,7 @@ func (pr OutputArray) OnFlush(ctx context.Context) {}
 
 func (pr OutputArray) OnClose(ctx context.Context) {}
 
-// OutputNull ignores the result and do nothing
+// OutputNull ignores the item and do nothing
 type OutputNull struct {
 }
 
