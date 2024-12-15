@@ -18,6 +18,7 @@ type Process struct {
 	Source    string   // source with Clean and Metadata plugins applied
 }
 
+// InitProcess initializes an empty Process.
 func InitProcess(options ...InitProcessOption) *Process {
 	ret := &Process{
 		Metadata: MapValue{},
@@ -31,30 +32,35 @@ func InitProcess(options ...InitProcessOption) *Process {
 
 type InitProcessOption func(p *Process)
 
+// WithInitLineNo sets Process.LineNo.
 func WithInitLineNo(lineNo int) InitProcessOption {
 	return func(p *Process) {
 		p.LineNo = lineNo
 	}
 }
 
+// WithInitLineCount sets Process.LineCount.
 func WithInitLineCount(lineCount int) InitProcessOption {
 	return func(p *Process) {
 		p.LineCount = lineCount
 	}
 }
 
+// WithInitLine sets Process.Line.
 func WithInitLine(line string) InitProcessOption {
 	return func(p *Process) {
 		p.Line = line
 	}
 }
 
+// WithInitSource sets Process.Source.
 func WithInitSource(source string) InitProcessOption {
 	return func(p *Process) {
 		p.Source = source
 	}
 }
 
+// WithInitCustom calls a callback to initialize a Process.
 func WithInitCustom(f func(*Process)) InitProcessOption {
 	return func(p *Process) {
 		f(p)

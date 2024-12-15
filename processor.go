@@ -6,6 +6,7 @@ import (
 	"io"
 )
 
+// Processor sends lines to Job using a LineProvider.
 type Processor struct {
 	pluginClean       []PluginClean
 	pluginMetadata    []PluginMetadata
@@ -16,11 +17,12 @@ type Processor struct {
 	pluginParseFormat []PluginParseFormat
 	pluginPostProcess []PluginPostProcess
 	pluginCreate      []PluginCreate
-	onJobFinished     []func(context.Context, *Processor) error
+	onJobFinished     []func(context.Context, *Job) error
 
 	Logger Log
 }
 
+// NewProcessor sends lines to Job using a LineProvider.
 func NewProcessor(options ...Option) *Processor {
 	ret := &Processor{}
 	for _, o := range options {
@@ -29,6 +31,7 @@ func NewProcessor(options ...Option) *Processor {
 	return ret
 }
 
+// RegisterPlugin registers a Plugin. One Plugin instance may implement more than one plugin type.
 func (p *Processor) RegisterPlugin(plugin Plugin) {
 	if rp, ok := plugin.(PluginClean); ok {
 		p.pluginClean = append(p.pluginClean, rp)
@@ -59,11 +62,15 @@ func (p *Processor) RegisterPlugin(plugin Plugin) {
 	}
 }
 
+// Process reads lines from an [io.Reander] until it returns [io.EOF], sending the items found to ProcessResult.
 func (p *Processor) Process(ctx context.Context, r io.Reader, result ProcessResult, options ...JobOption) error {
 	return p.ProcessProvider(ctx, NewReaderLineProvider(r, DefaultScannerBufferSize), result, options...)
 }
 
-func (p *Processor) ProcessProvider(ctx context.Context, scanner LineProvider, result ProcessResult, options ...JobOption) error {
+// ProcessProvider reads lines from a [LineProvider] until [LineProvider.Scan] returns false, sending the items found to
+// ProcessResult.
+func (p *Processor) ProcessProvider(ctx context.Context, scanner LineProvider, result ProcessResult,
+	options ...JobOption) error {
 	job := NewJob(p, result, options...)
 	var err error
 	for scanner.Scan(ctx) {
@@ -81,7 +88,7 @@ func (p *Processor) ProcessProvider(ctx context.Context, scanner LineProvider, r
 	}
 
 	for _, jobFinished := range p.onJobFinished {
-		_ = jobFinished(ctx, p)
+		_ = jobFinished(ctx, job)
 	}
 
 	return job.Finish(ctx)

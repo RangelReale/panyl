@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// Job manages processing lines and detecting information from them.
 type Job struct {
 	processor               *Processor
 	result                  ProcessResult
@@ -28,6 +29,7 @@ type Job struct {
 
 var ErrFinished = errors.New("finished")
 
+// NewJob manages processing lines and detecting information from them.
 func NewJob(processor *Processor, result ProcessResult, options ...JobOption) *Job {
 	ret := &Job{
 		processor:               processor,
@@ -42,7 +44,8 @@ func NewJob(processor *Processor, result ProcessResult, options ...JobOption) *J
 	return ret
 }
 
-func (p *Job) ProcessLine(ctx context.Context, line interface{}) error {
+// ProcessLine adds a line to be processed. line can be `string` or `ProcessItem`.
+func (p *Job) ProcessLine(ctx context.Context, line any) error {
 	p.m.Lock()
 	defer p.m.Unlock()
 
