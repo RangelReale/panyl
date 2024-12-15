@@ -12,9 +12,9 @@ import (
 type AnsiEscape struct {
 }
 
-var _ panyl.PluginClean = (*AnsiEscape)(nil)
+var _ panyl.PluginClean = AnsiEscape{}
 
-func (c AnsiEscape) Clean(ctx context.Context, item *panyl.Item) (bool, error) {
+func (m AnsiEscape) Clean(ctx context.Context, item *panyl.Item) (bool, error) {
 	if ok, cl := util.AnsiEscapeString(item.Line); ok {
 		item.Metadata.ListValueAdd(panyl.MetadataClean, panyl.MetadataCleanAnsiEscape)
 		item.Line = cl
@@ -23,4 +23,4 @@ func (c AnsiEscape) Clean(ctx context.Context, item *panyl.Item) (bool, error) {
 	return false, nil
 }
 
-func (c AnsiEscape) IsPanylPlugin() {}
+func (m AnsiEscape) IsPanylPlugin() {}

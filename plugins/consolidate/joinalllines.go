@@ -10,9 +10,9 @@ import (
 type JoinAllLines struct {
 }
 
-var _ panyl.PluginConsolidate = (*JoinAllLines)(nil)
+var _ panyl.PluginConsolidate = JoinAllLines{}
 
-func (j JoinAllLines) Consolidate(ctx context.Context, lines panyl.ItemLines, item *panyl.Item) (_ bool, topLines int, _ error) {
+func (m JoinAllLines) Consolidate(ctx context.Context, lines panyl.ItemLines, item *panyl.Item) (_ bool, topLines int, _ error) {
 	err := item.MergeLinesData(lines)
 	if err != nil {
 		return false, -1, err
@@ -21,4 +21,4 @@ func (j JoinAllLines) Consolidate(ctx context.Context, lines panyl.ItemLines, it
 	return true, len(lines), nil
 }
 
-func (j JoinAllLines) IsPanylPlugin() {}
+func (m JoinAllLines) IsPanylPlugin() {}

@@ -15,9 +15,9 @@ import (
 type JSON struct {
 }
 
-var _ panyl.PluginStructure = (*JSON)(nil)
+var _ panyl.PluginStructure = JSON{}
 
-func (m *JSON) ExtractStructure(ctx context.Context, lines panyl.ItemLines, item *panyl.Item) (bool, error) {
+func (m JSON) ExtractStructure(ctx context.Context, lines panyl.ItemLines, item *panyl.Item) (bool, error) {
 	jdec := json.NewDecoder(strings.NewReader(lines.Line()))
 	jdata := map[string]interface{}{}
 	err := jdec.Decode(&jdata)
