@@ -16,14 +16,16 @@ type DebugLogOutput struct {
 	IncludeSource bool
 }
 
+var _ DebugLog = DebugLogOutput{}
+
 // NewDebugLogOutput creates a DebugLogOutput using an io.Writer.
-func NewDebugLogOutput(w io.Writer) *DebugLogOutput {
-	return &DebugLogOutput{w: w}
+func NewDebugLogOutput(w io.Writer) DebugLogOutput {
+	return DebugLogOutput{w: w}
 }
 
 // NewStdDebugLogOutput creates a DebugLogOutput using an os.StdOut.
-func NewStdDebugLogOutput() *DebugLogOutput {
-	return &DebugLogOutput{w: os.Stdout}
+func NewStdDebugLogOutput() DebugLogOutput {
+	return DebugLogOutput{w: os.Stdout}
 }
 
 func (l DebugLogOutput) LogSourceLine(ctx context.Context, n int, line, rawLine string) {
