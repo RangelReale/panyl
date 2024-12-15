@@ -208,6 +208,31 @@ type PluginPostProcess interface {
 }
 ```
 
+## Plugin execution order
+
+- line received from source: `process.Line` = line, `process.RawSource` = line
+- `PluginClean`: `process.Line` changes to be cleaned, like removing ANSI codes
+- `process.Line` is trimmed with `strings.TrimSpace`
+- `PluginMetadata`: `process.Metadata` may be changed with extracted metadata (like application names in docker-compose logs), 
+  `process.Line` may be changed removing the metadata information.
+- `process.Source` is set to the current `process.Line`
+- add current line to a list of unprocessed lines to support multiline parsing
+- `PluginStructure`: may extract structured data (like JSON) to `process.Metadata` and/or `process.Data` from the list of lines
+- `PluginParse`: may detect data and/or metadata from line-based formats (like Apache logs)
+- `PluginSequence`: if no known format was found, sequence plugins can check for sequence breaks, like docker-compose logs
+  having the application name changed
+- `PluginConsolidate`: some logs can output multiple lines, like Ruby logs, or multiline JSON. This plugin can be used
+  to detect a format and consolidate from multiple lines
+- otherwise, if known data was found:
+- `PluginParseFormat`: if `MetadataFormat` metadata was not set, this plugin is called to try to detect a format from the
+  available data. This is used to detect formats from general structures, like Apache logs in JSON format.
+- `PluginPostProcess`: this plugin can be used to change processed items before they are returned
+- if `MetadataTimestamp` was not set, a timestamp is derived from the timestamp of the last sent record, if available
+- if `MetadataSkip` is set to true, the record is not sent to the output and is discarded
+- `PluginCreate.CreateBefore`: can be used to create items based on the item about to be output, to be returned before it.
+- The processed item is returned to `ProcessResult`
+- `PluginCreate.CreateAfter`: can be used to create items based on the item about to be output, to be returned after it.
+
 ## Author
 
 Rangel Reale (rangelreale@gmail.com)

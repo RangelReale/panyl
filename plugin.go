@@ -32,7 +32,7 @@ type PluginStructure interface {
 
 // PluginParse allows parsing data from a line, for example, an Apache log format, a Ruby log format, etc.
 // The full text must be completely parsed, partial match should not be supported.
-// You should take in account the lines Metdatada/Data and apply them to result at your convenience.
+// You should take in account the lines Metadata/Data and apply them to result at your convenience.
 type PluginParse interface {
 	Plugin
 	ExtractParse(ctx context.Context, lines ProcessLines, result *Process) (bool, error)
