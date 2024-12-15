@@ -30,7 +30,7 @@ func (l DebugLogOutput) LogSourceLine(ctx context.Context, n int, line, rawLine 
 	_, _ = fmt.Fprintf(l.w, "@@@ SOURCE LINE [%d]: '%s' @@@\n", n, line)
 }
 
-func (l DebugLogOutput) LogProcess(ctx context.Context, p *Process) {
+func (l DebugLogOutput) LogItem(ctx context.Context, p *Item) {
 	var lineno string
 	if p.LineCount > 1 {
 		lineno = fmt.Sprintf("[%d-%d]", p.LineNo, p.LineNo+p.LineCount-1)

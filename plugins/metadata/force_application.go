@@ -15,14 +15,14 @@ type ForceApplication struct {
 var _ panyl.PluginMetadata = (*ForceApplication)(nil)
 var _ panyl.PluginSequence = (*ForceApplication)(nil)
 
-func (m *ForceApplication) ExtractMetadata(ctx context.Context, result *panyl.Process) (bool, error) {
+func (m *ForceApplication) ExtractMetadata(ctx context.Context, result *panyl.Item) (bool, error) {
 	if _, ok := result.Metadata[panyl.MetadataApplication]; !ok {
 		result.Metadata[panyl.MetadataApplication] = m.Application
 	}
 	return true, nil
 }
 
-func (m *ForceApplication) BlockSequence(ctx context.Context, lastp, p *panyl.Process) bool {
+func (m *ForceApplication) BlockSequence(ctx context.Context, lastp, p *panyl.Item) bool {
 	// block sequence if application changed
 	return lastp.Metadata.StringValue(panyl.MetadataApplication) != p.Metadata.StringValue(panyl.MetadataApplication)
 }

@@ -14,7 +14,7 @@ type AnsiEscape struct {
 
 var _ panyl.PluginClean = (*AnsiEscape)(nil)
 
-func (c AnsiEscape) Clean(ctx context.Context, result *panyl.Process) (bool, error) {
+func (c AnsiEscape) Clean(ctx context.Context, result *panyl.Item) (bool, error) {
 	if ok, cl := util.AnsiEscapeString(result.Line); ok {
 		result.Metadata.ListValueAdd(panyl.MetadataClean, panyl.MetadataCleanAnsiEscape)
 		result.Line = cl

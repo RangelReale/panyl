@@ -52,7 +52,7 @@ func TestProcessor_CreatePlugin_LineProvider(t *testing.T) {
 
 	res := &ProcessResultArray{}
 	err := p.ProcessProvider(ctx, NewStaticLineProvider([]interface{}{
-		InitProcess(WithInitLine("line")),
+		InitItem(WithInitLine("line")),
 	}), res)
 
 	assert.NoError(t, err)
@@ -89,39 +89,39 @@ type AllPlugins struct {
 
 func (ap AllPlugins) IsPanylPlugin() {}
 
-func (ap AllPlugins) Clean(ctx context.Context, result *Process) (bool, error) {
+func (ap AllPlugins) Clean(ctx context.Context, result *Item) (bool, error) {
 	return false, nil
 }
 
-func (ap AllPlugins) ExtractMetadata(ctx context.Context, result *Process) (bool, error) {
+func (ap AllPlugins) ExtractMetadata(ctx context.Context, result *Item) (bool, error) {
 	return false, nil
 }
 
-func (ap AllPlugins) ExtractStructure(ctx context.Context, lines ProcessLines, result *Process) (bool, error) {
+func (ap AllPlugins) ExtractStructure(ctx context.Context, lines ItemLines, result *Item) (bool, error) {
 	return false, nil
 }
 
-func (ap AllPlugins) ExtractParse(ctx context.Context, lines ProcessLines, result *Process) (bool, error) {
+func (ap AllPlugins) ExtractParse(ctx context.Context, lines ItemLines, result *Item) (bool, error) {
 	return false, nil
 }
 
-func (ap AllPlugins) BlockSequence(ctx context.Context, lastp, p *Process) bool {
+func (ap AllPlugins) BlockSequence(ctx context.Context, lastp, p *Item) bool {
 	return false
 }
 
-func (ap AllPlugins) Consolidate(ctx context.Context, lines ProcessLines, result *Process) (bool, int, error) {
+func (ap AllPlugins) Consolidate(ctx context.Context, lines ItemLines, result *Item) (bool, int, error) {
 	return false, -1, nil
 }
 
-func (ap AllPlugins) ParseFormat(ctx context.Context, result *Process) (bool, error) {
+func (ap AllPlugins) ParseFormat(ctx context.Context, result *Item) (bool, error) {
 	return false, nil
 }
 
-func (ap AllPlugins) CreateBefore(ctx context.Context, result *Process) ([]*Process, error) {
+func (ap AllPlugins) CreateBefore(ctx context.Context, result *Item) ([]*Item, error) {
 	return nil, nil
 }
 
-func (ap AllPlugins) CreateAfter(ctx context.Context, result *Process) ([]*Process, error) {
+func (ap AllPlugins) CreateAfter(ctx context.Context, result *Item) ([]*Item, error) {
 	return nil, nil
 }
 
@@ -129,7 +129,7 @@ func (ap AllPlugins) PostProcessOrder() int {
 	return PostProcessOrderDefault
 }
 
-func (ap AllPlugins) PostProcess(ctx context.Context, result *Process) (bool, error) {
+func (ap AllPlugins) PostProcess(ctx context.Context, result *Item) (bool, error) {
 	return false, nil
 }
 
@@ -139,15 +139,15 @@ type CreatePluginTest struct {
 
 func (pt CreatePluginTest) IsPanylPlugin() {}
 
-func (pt CreatePluginTest) CreateBefore(ctx context.Context, result *Process) ([]*Process, error) {
-	return []*Process{
-		InitProcess(WithInitLine("line-before")),
+func (pt CreatePluginTest) CreateBefore(ctx context.Context, result *Item) ([]*Item, error) {
+	return []*Item{
+		InitItem(WithInitLine("line-before")),
 	}, nil
 }
 
-func (pt CreatePluginTest) CreateAfter(ctx context.Context, result *Process) ([]*Process, error) {
-	return []*Process{
-		InitProcess(WithInitLine("line-after")),
+func (pt CreatePluginTest) CreateAfter(ctx context.Context, result *Item) ([]*Item, error) {
+	return []*Item{
+		InitItem(WithInitLine("line-after")),
 	}, nil
 }
 
@@ -155,7 +155,7 @@ func (pt CreatePluginTest) PostProcessOrder() int {
 	return PostProcessOrderDefault
 }
 
-func (pt CreatePluginTest) PostProcess(ctx context.Context, result *Process) (bool, error) {
+func (pt CreatePluginTest) PostProcess(ctx context.Context, result *Item) (bool, error) {
 	if result.Metadata.BoolValue(MetadataCreated) {
 		result.Line += "-create"
 	} else {
@@ -175,7 +175,7 @@ func (pt PostProcessPluginTest) PostProcessOrder() int {
 	return pt.order
 }
 
-func (pt PostProcessPluginTest) PostProcess(ctx context.Context, result *Process) (bool, error) {
+func (pt PostProcessPluginTest) PostProcess(ctx context.Context, result *Item) (bool, error) {
 	result.Line += fmt.Sprintf("_%d", pt.order)
 	return true, nil
 }

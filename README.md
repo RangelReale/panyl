@@ -61,38 +61,38 @@ func main() {
 type Output struct {
 }
 
-func (o *Output) OnResult(ctx context.Context, p *panyl.Process) (cont bool) {
+func (o *Output) OnResult(ctx context.Context, item *panyl.Item) (cont bool) {
     var out bytes.Buffer
 
     // timestamp
-    if ts, ok := p.Metadata[panyl.MetadataTimestamp]; ok {
+    if ts, ok := item.Metadata[panyl.MetadataTimestamp]; ok {
         out.WriteString(fmt.Sprintf("%s ", ts.(time.Time).Local().Format("2006-01-02 15:04:05.000")))
     }
 
     // level
-    if level := p.Metadata.StringValue(panyl.MetadataLevel); level != "" {
+    if level := item.Metadata.StringValue(panyl.MetadataLevel); level != "" {
         out.WriteString(fmt.Sprintf("[%s] ", level))
     }
 
     // category
-    if category := p.Metadata.StringValue(panyl.MetadataCategory); category != "" {
+    if category := item.Metadata.StringValue(panyl.MetadataCategory); category != "" {
         out.WriteString(fmt.Sprintf("{{%s}} ", category))
     }
 
     // message
-    if msg := p.Metadata.StringValue(panyl.MetadataMessage); msg != "" {
+    if msg := item.Metadata.StringValue(panyl.MetadataMessage); msg != "" {
         out.WriteString(msg)
-    } else if len(p.Data) > 0 {
+    } else if len(item.Data) > 0 {
         // Extracted structure but no metadata
-        dt, err := json.Marshal(p.Data)
+        dt, err := json.Marshal(item.Data)
         if err != nil {
             fmt.Printf("Error marshaling data to json: %s\n", err.Error())
             return
         }
         out.WriteString(fmt.Sprintf("| %s", string(dt)))
-    } else if p.Line != "" {
+    } else if item.Line != "" {
         // Show raw line if available
-        out.WriteString(p.Line)
+        out.WriteString(item.Line)
     }
 
     fmt.Println(out.String())
@@ -109,7 +109,7 @@ func (o *Output) OnResult(ctx context.Context, p *panyl.Process) (cont bool) {
 // Change result.Line if you need to modify the line.
 // You can set result.Metadata to allow other plugins to detect the change.
 type PluginClean interface {
-    Clean(ctx context.Context, result *Process) (bool, error)
+    Clean(ctx context.Context, item *Item) (bool, error)
 }
 ```
 
@@ -120,7 +120,7 @@ type PluginClean interface {
 // Set result.Metadata with the detected data.
 // You can also change result.Line if you need to remove the metadata from the line.
 type PluginMetadata interface {
-    ExtractMetadata(ctx context.Context, result *Process) (bool, error)
+    ExtractMetadata(ctx context.Context, item *Item) (bool, error)
 }
 ```
 
@@ -131,7 +131,7 @@ type PluginMetadata interface {
 // The full text must be a complete structure, partial match should not be supported.
 // You should take in account the lines Metdatada/Data and apply them to result at your convenience.
 type PluginStructure interface {
-    ExtractStructure(ctx context.Context, lines ProcessLines, result *Process) (bool, error)
+    ExtractStructure(ctx context.Context, lines ItemLines, item *Item) (bool, error)
 }
 ```
 
@@ -142,7 +142,7 @@ type PluginStructure interface {
 // The full text must be completely parsed, partial match should not be supported.
 // You should take in account the lines Metdatada/Data and apply them to result at your convenience.
 type PluginParse interface {
-    ExtractParse(ctx context.Context, lines ProcessLines, result *Process) (bool, error)
+    ExtractParse(ctx context.Context, lines ItemLines, item *Item) (bool, error)
 }
 ```
 
@@ -152,7 +152,7 @@ type PluginParse interface {
 // PluginSequence allows checking if 2 processes breaks a sequence, for example, if they belong to different
 // applications, given it is possible to detect this.
 type PluginSequence interface {
-    BlockSequence(ctx context.Context, lastp, p *Process) bool
+    BlockSequence(ctx context.Context, lastp, item *Item) bool
 }
 ```
 
@@ -166,7 +166,7 @@ type PluginSequence interface {
 // The plugin can be called multiple times for the same set of lines, so don't try to detect more if you
 // find a line that don't match, you will be called again after the unmatched line.
 type PluginConsolidate interface {
-    Consolidate(ctx context.Context, lines ProcessLines, result *Process) (_ bool, topLines int, _ error)
+    Consolidate(ctx context.Context, lines ItemLines, item *Item) (_ bool, topLines int, _ error)
 }
 ```
 
@@ -177,7 +177,7 @@ type PluginConsolidate interface {
 // detecting some format from a raw structure (JSON or XML), for example, detecting the Apache log format from
 // the parsed JSON data.
 type PluginParseFormat interface {
-    ParseFormat(ctx context.Context, result *Process) (bool, error)
+    ParseFormat(ctx context.Context, item *Item) (bool, error)
 }
 ```
 
@@ -189,8 +189,8 @@ type PluginParseFormat interface {
 // This is called after PluginPostProcess, and PluginPostProcess is also called for each item.
 // Metadata_Created is set as true for items created by these functions.
 type PluginCreate interface {
-    CreateBefore(ctx context.Context, result *Process) ([]*Process, error)
-    CreateAfter(ctx context.Context, result *Process) ([]*Process, error)
+    CreateBefore(ctx context.Context, item *Item) ([]*Item, error)
+    CreateAfter(ctx context.Context, item *Item) ([]*Item, error)
 }
 ```
 
@@ -204,7 +204,7 @@ type PluginCreate interface {
 // as limits.
 type PluginPostProcess interface {
     PostProcessOrder() int
-    PostProcess(ctx context.Context, result *Process) (bool, error)
+    PostProcess(ctx context.Context, item *Item) (bool, error)
 }
 ```
 

@@ -28,7 +28,7 @@ func WithMaxBacklogLines(maxBacklogLines int) JobOption {
 	}
 }
 
-// WithIncludeSource sets whether to set Process.Source with the source line.
+// WithIncludeSource sets whether to set Item.Source with the source line.
 func WithIncludeSource(includeSource bool) JobOption {
 	return func(p *Job) {
 		p.IncludeSource = includeSource

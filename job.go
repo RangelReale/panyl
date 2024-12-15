@@ -17,7 +17,7 @@ type Job struct {
 	result                  ProcessResult
 	lineno                  int
 	lastTime                time.Time
-	lines                   ProcessLines
+	lines                   ItemLines
 	sortedPluginPostProcess []PluginPostProcess
 	m                       sync.Mutex
 
@@ -62,15 +62,15 @@ func (p *Job) ProcessLine(ctx context.Context, line any) error {
 
 	// read line from LineProvider
 	var sourceLine string
-	var process *Process
+	var process *Item
 	switch l := line.(type) {
 	case string:
-		process = p.initProcess(p.lineno, l)
+		process = p.initItem(p.lineno, l)
 		sourceLine = l
-	case *Process:
+	case *Item:
 		process = l
 		process.LineNo = p.lineno
-		p.ensureProcess(process)
+		p.ensureItem(process)
 
 		if p.processor.DebugLog != nil {
 			// encode source line for Logger
@@ -158,7 +158,7 @@ structureloop:
 		process.LineNo = p.lines[lineFound].LineNo
 		process.LineCount = len(p.lines) - lineFound
 		if p.IncludeSource {
-			process.Source = ProcessLines(p.lines[lineFound:]).Source()
+			process.Source = ItemLines(p.lines[lineFound:]).Source()
 		}
 		if p.lastTime.IsZero() {
 			// try to get the timestamp from the processed line if time is Zero
@@ -196,7 +196,7 @@ structureloop:
 				if err != nil {
 					return err
 				}
-				p.lines = ProcessLines{p.lines[len(p.lines)-1]}
+				p.lines = ItemLines{p.lines[len(p.lines)-1]}
 			}
 		}
 	}
@@ -231,8 +231,8 @@ func (p *Job) Finish(ctx context.Context) error {
 	return nil
 }
 
-func (p *Job) initProcess(lineno int, line string) *Process {
-	ret := &Process{
+func (p *Job) initItem(lineno int, line string) *Item {
+	ret := &Item{
 		LineNo:   lineno,
 		Metadata: map[string]interface{}{},
 		Data:     map[string]interface{}{},
@@ -244,7 +244,7 @@ func (p *Job) initProcess(lineno int, line string) *Process {
 	return ret
 }
 
-func (p *Job) ensureProcess(process *Process) {
+func (p *Job) ensureItem(process *Item) {
 	if process.Metadata == nil {
 		process.Metadata = map[string]interface{}{}
 	}
@@ -257,14 +257,14 @@ func (p *Job) ensureProcess(process *Process) {
 }
 
 // processResultLines process previous lines, trying to consolidate using Consolidate plugins, and outputs each result.
-func (p *Job) processResultLines(ctx context.Context, lines ProcessLines, result ProcessResult, lastTime time.Time,
+func (p *Job) processResultLines(ctx context.Context, lines ItemLines, result ProcessResult, lastTime time.Time,
 	sortedPluginPostProcess []PluginPostProcess) (time.Time, error) {
 	var rts = lastTime
 	startLine := 0
 	for startLine < len(lines) {
 		processed := false
 		for _, pc := range p.processor.pluginConsolidate {
-			consolidateProcess := p.initProcess(lines[startLine].LineNo, "")
+			consolidateProcess := p.initItem(lines[startLine].LineNo, "")
 			if ok, topLines, err := pc.Consolidate(ctx, lines[startLine:], consolidateProcess); err != nil {
 				return time.Time{}, err
 			} else if ok {
@@ -274,7 +274,7 @@ func (p *Job) processResultLines(ctx context.Context, lines ProcessLines, result
 
 				consolidateProcess.LineCount = topLines
 				if p.IncludeSource {
-					consolidateProcess.Source = ProcessLines(lines[startLine : startLine+topLines]).Source()
+					consolidateProcess.Source = ItemLines(lines[startLine : startLine+topLines]).Source()
 				}
 				rts, err = p.outputResult(ctx, consolidateProcess, result, rts, sortedPluginPostProcess)
 				if err != nil {
@@ -298,8 +298,8 @@ func (p *Job) processResultLines(ctx context.Context, lines ProcessLines, result
 	return rts, nil
 }
 
-// outputResult post-processes the Process and outputs the result.
-func (p *Job) outputResult(ctx context.Context, process *Process, result ProcessResult, lastTime time.Time,
+// outputResult post-processes the Item and outputs the result.
+func (p *Job) outputResult(ctx context.Context, process *Item, result ProcessResult, lastTime time.Time,
 	sortedPluginPostProcess []PluginPostProcess) (time.Time, error) {
 	// if no format was detected, call the ParseFormat plugins
 	if _, ok := process.Metadata[MetadataFormat]; !ok {
@@ -316,8 +316,8 @@ func (p *Job) outputResult(ctx context.Context, process *Process, result Process
 	return p.internalOutputResult(ctx, process, result, lastTime, true, sortedPluginPostProcess)
 }
 
-// outputResult post-processes the Process and outputs the result.
-func (p *Job) internalOutputResult(ctx context.Context, process *Process, result ProcessResult, lastTime time.Time, create bool,
+// outputResult post-processes the Item and outputs the result.
+func (p *Job) internalOutputResult(ctx context.Context, process *Item, result ProcessResult, lastTime time.Time, create bool,
 	sortedPluginPostProcess []PluginPostProcess) (time.Time, error) {
 	for _, pp := range sortedPluginPostProcess {
 		_, err := pp.PostProcess(ctx, process)
@@ -347,7 +347,7 @@ func (p *Job) internalOutputResult(ctx context.Context, process *Process, result
 		// call create plugins
 		if create {
 			for _, pp := range p.processor.pluginCreate {
-				var items []*Process
+				var items []*Item
 				var err error
 				if isBefore {
 					items, err = pp.CreateBefore(ctx, process)
@@ -380,7 +380,7 @@ func (p *Job) internalOutputResult(ctx context.Context, process *Process, result
 	}
 
 	if p.processor.DebugLog != nil {
-		p.processor.DebugLog.LogProcess(ctx, process)
+		p.processor.DebugLog.LogItem(ctx, process)
 	}
 	result.OnResult(ctx, process)
 

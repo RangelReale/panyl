@@ -62,7 +62,7 @@ func (p *Processor) RegisterPlugin(plugin Plugin) {
 	}
 }
 
-// Process reads lines from an [io.Reander] until it returns [io.EOF], sending the items found to ProcessResult.
+// Item reads lines from an [io.Reander] until it returns [io.EOF], sending the items found to ProcessResult.
 func (p *Processor) Process(ctx context.Context, r io.Reader, result ProcessResult, options ...JobOption) error {
 	return p.ProcessProvider(ctx, NewReaderLineProvider(r, DefaultScannerBufferSize), result, options...)
 }

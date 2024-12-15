@@ -12,7 +12,7 @@ type JoinAllLines struct {
 
 var _ panyl.PluginConsolidate = (*JoinAllLines)(nil)
 
-func (j JoinAllLines) Consolidate(ctx context.Context, lines panyl.ProcessLines, result *panyl.Process) (_ bool, topLines int, _ error) {
+func (j JoinAllLines) Consolidate(ctx context.Context, lines panyl.ItemLines, result *panyl.Item) (_ bool, topLines int, _ error) {
 	err := result.MergeLinesData(lines)
 	if err != nil {
 		return false, -1, err
