@@ -17,7 +17,7 @@ type JSON struct {
 
 var _ panyl.PluginStructure = (*JSON)(nil)
 
-func (m *JSON) ExtractStructure(ctx context.Context, lines panyl.ItemLines, result *panyl.Item) (bool, error) {
+func (m *JSON) ExtractStructure(ctx context.Context, lines panyl.ItemLines, item *panyl.Item) (bool, error) {
 	jdec := json.NewDecoder(strings.NewReader(lines.Line()))
 	jdata := map[string]interface{}{}
 	err := jdec.Decode(&jdata)
@@ -27,19 +27,19 @@ func (m *JSON) ExtractStructure(ctx context.Context, lines panyl.ItemLines, resu
 	}
 
 	// merge previous data and metadata
-	err = result.MergeLinesData(lines)
+	err = item.MergeLinesData(lines)
 	if err != nil {
 		return false, err
 	}
 	// clean the line as it was used entirely
-	result.Line = ""
+	item.Line = ""
 
-	// copy the parsed data to the result
-	if err := mergo.Map(&result.Data, jdata); err != nil {
+	// copy the parsed data to the item
+	if err := mergo.Map(&item.Data, jdata); err != nil {
 		return false, fmt.Errorf("Error merging structs: %v", err)
 	}
 
-	result.Metadata[panyl.MetadataStructure] = panyl.MetadataStructureJSON
+	item.Metadata[panyl.MetadataStructure] = panyl.MetadataStructureJSON
 
 	return true, nil
 }

@@ -48,7 +48,7 @@ func main() {
             &parse.MongoLog{},
             &parse.NGINXErrorLog{},
         ),
-        // may use a logger when debugging, it outputs each source line and parsed processes
+        // may use a logger when debugging, it outputs each source line and parsed items
         // panyl.WithDebugLog(panyl.NewStdDebugLogOutput()),
     )
 
@@ -61,7 +61,7 @@ func main() {
 type Output struct {
 }
 
-func (o *Output) OnResult(ctx context.Context, item *panyl.Item) (cont bool) {
+func (o *Output) OnItem(ctx context.Context, item *panyl.Item) (cont bool) {
     var out bytes.Buffer
 
     // timestamp
@@ -106,8 +106,8 @@ func (o *Output) OnResult(ctx context.Context, item *panyl.Item) (cont bool) {
 
 ```go
 // PluginClean allows cleaning of a line.
-// Change result.Line if you need to modify the line.
-// You can set result.Metadata to allow other plugins to detect the change.
+// Change item.Line if you need to modify the line.
+// You can set item.Metadata to allow other plugins to detect the change.
 type PluginClean interface {
     Clean(ctx context.Context, item *Item) (bool, error)
 }
@@ -117,8 +117,8 @@ type PluginClean interface {
 
 ```go
 // PluginMetadata allows extracting metadata from a line.
-// Set result.Metadata with the detected data.
-// You can also change result.Line if you need to remove the metadata from the line.
+// Set item.Metadata with the detected data.
+// You can also change item.Line if you need to remove the metadata from the line.
 type PluginMetadata interface {
     ExtractMetadata(ctx context.Context, item *Item) (bool, error)
 }
@@ -129,7 +129,7 @@ type PluginMetadata interface {
 ```go
 // PluginStructure allows extracting structure from a line, for example, JSON or XML.
 // The full text must be a complete structure, partial match should not be supported.
-// You should take in account the lines Metdatada/Data and apply them to result at your convenience.
+// You should take in account the lines Metdatada/Data and apply them to the item at your convenience.
 type PluginStructure interface {
     ExtractStructure(ctx context.Context, lines ItemLines, item *Item) (bool, error)
 }
@@ -140,7 +140,7 @@ type PluginStructure interface {
 ```go
 // PluginParse allows parsing data from a line, for example, an Apache log format, a Ruby log format, etc.
 // The full text must be completely parsed, partial match should not be supported.
-// You should take in account the lines Metdatada/Data and apply them to result at your convenience.
+// You should take in account the lines Metdatada/Data and apply them to the item at your convenience.
 type PluginParse interface {
     ExtractParse(ctx context.Context, lines ItemLines, item *Item) (bool, error)
 }
@@ -161,7 +161,7 @@ type PluginSequence interface {
 ```go
 // PluginConsolidate allows to consolidate lines that couldn't be parsed by any plugin, like for example,
 // multi-line Ruby error strings.
-// The plugin should ALWAYS read lines from the top of the list, and set data in result about them.
+// The plugin should ALWAYS read lines from the top of the list, and set data in the item about them.
 // The topLines result states how many lines were processed, and they will be removed from future calls.
 // The plugin can be called multiple times for the same set of lines, so don't try to detect more if you
 // find a line that don't match, you will be called again after the unmatched line.
@@ -173,7 +173,7 @@ type PluginConsolidate interface {
 ### ParseFormat
 
  ```go
-// PluginParseFormat is called for results that don't have Metadata_Format set, so it allows
+// PluginParseFormat is called for items that don't have Metadata_Format set, so it allows
 // detecting some format from a raw structure (JSON or XML), for example, detecting the Apache log format from
 // the parsed JSON data.
 type PluginParseFormat interface {
@@ -230,7 +230,7 @@ type PluginPostProcess interface {
 - if `MetadataTimestamp` was not set, a timestamp is derived from the timestamp of the last sent record, if available
 - if `MetadataSkip` is set to true, the record is not sent to the output and is discarded
 - `PluginCreate.CreateBefore`: can be used to create items based on the item about to be output, to be returned before it.
-- The processed item is returned to `ProcessResult`
+- The processed item is returned to `Output`
 - `PluginCreate.CreateAfter`: can be used to create items based on the item about to be output, to be returned after it.
 
 ## Author

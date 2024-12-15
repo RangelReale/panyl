@@ -15,9 +15,9 @@ type ForceApplication struct {
 var _ panyl.PluginMetadata = (*ForceApplication)(nil)
 var _ panyl.PluginSequence = (*ForceApplication)(nil)
 
-func (m *ForceApplication) ExtractMetadata(ctx context.Context, result *panyl.Item) (bool, error) {
-	if _, ok := result.Metadata[panyl.MetadataApplication]; !ok {
-		result.Metadata[panyl.MetadataApplication] = m.Application
+func (m *ForceApplication) ExtractMetadata(ctx context.Context, item *panyl.Item) (bool, error) {
+	if _, ok := item.Metadata[panyl.MetadataApplication]; !ok {
+		item.Metadata[panyl.MetadataApplication] = m.Application
 	}
 	return true, nil
 }

@@ -7,16 +7,16 @@ type Plugin interface {
 }
 
 // PluginClean allows cleaning of a line.
-// Change result.Line if you need to modify the line.
-// You can set result.Metadata to allow other plugins to detect the change.
+// Change item.Line if you need to modify the line.
+// You can set item.Metadata to allow other plugins to detect the change.
 type PluginClean interface {
 	Plugin
 	Clean(ctx context.Context, item *Item) (bool, error)
 }
 
 // PluginMetadata allows extracting metadata from a line.
-// Set result.Metadata with the detected data.
-// You can also change result.Line if you need to remove the metadata from the line.
+// Set item.Metadata with the detected data.
+// You can also change item.Line if you need to remove the metadata from the line.
 type PluginMetadata interface {
 	Plugin
 	ExtractMetadata(ctx context.Context, item *Item) (bool, error)
@@ -24,7 +24,7 @@ type PluginMetadata interface {
 
 // PluginStructure allows extracting structure from a line, for example, JSON or XML.
 // The full text must be a complete structure, partial match should not be supported.
-// You should take in account the lines Metdatada/Data and apply them to result at your convenience.
+// You should take in account the lines Metdatada/Data and apply them to the item at your convenience.
 type PluginStructure interface {
 	Plugin
 	ExtractStructure(ctx context.Context, lines ItemLines, item *Item) (bool, error)
@@ -32,7 +32,7 @@ type PluginStructure interface {
 
 // PluginParse allows parsing data from a line, for example, an Apache log format, a Ruby log format, etc.
 // The full text must be completely parsed, partial match should not be supported.
-// You should take in account the lines Metadata/Data and apply them to result at your convenience.
+// You should take in account the lines Metadata/Data and apply them to the item at your convenience.
 type PluginParse interface {
 	Plugin
 	ExtractParse(ctx context.Context, lines ItemLines, item *Item) (bool, error)
@@ -47,7 +47,7 @@ type PluginSequence interface {
 
 // PluginConsolidate allows to consolidate lines that couldn't be parsed by any plugin, like for example,
 // multi-line Ruby error strings.
-// The plugin should ALWAYS read lines from the top of the list, and set data in result about them.
+// The plugin should ALWAYS read lines from the top of the list, and set data in the item about them.
 // The topLines result states how many lines were processed, and they will be removed from future calls.
 // The plugin can be called multiple times for the same set of lines, so don't try to detect more if you
 // find a line that don't match, you will be called again after the unmatched line.
@@ -56,7 +56,7 @@ type PluginConsolidate interface {
 	Consolidate(ctx context.Context, lines ItemLines, item *Item) (_ bool, topLines int, _ error)
 }
 
-// PluginParseFormat is called for results that don't have MetadataFormat set, so it allows
+// PluginParseFormat is called for items that don't have MetadataFormat set, so it allows
 // detecting some format from a raw structure (JSON or XML), for example, detecting the Apache log format from
 // the parsed JSON data.
 type PluginParseFormat interface {

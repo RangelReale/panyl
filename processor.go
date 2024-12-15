@@ -62,16 +62,16 @@ func (p *Processor) RegisterPlugin(plugin Plugin) {
 	}
 }
 
-// Item reads lines from an [io.Reander] until it returns [io.EOF], sending the items found to ProcessResult.
-func (p *Processor) Process(ctx context.Context, r io.Reader, result ProcessResult, options ...JobOption) error {
-	return p.ProcessProvider(ctx, NewReaderLineProvider(r, DefaultScannerBufferSize), result, options...)
+// Item reads lines from an [io.Reander] until it returns [io.EOF], sending the items found to Output.
+func (p *Processor) Process(ctx context.Context, r io.Reader, output Output, options ...JobOption) error {
+	return p.ProcessProvider(ctx, NewReaderLineProvider(r, DefaultScannerBufferSize), output, options...)
 }
 
 // ProcessProvider reads lines from a [LineProvider] until [LineProvider.Scan] returns false, sending the items found to
-// ProcessResult.
-func (p *Processor) ProcessProvider(ctx context.Context, scanner LineProvider, result ProcessResult,
+// Output.
+func (p *Processor) ProcessProvider(ctx context.Context, scanner LineProvider, output Output,
 	options ...JobOption) error {
-	job := NewJob(p, result, options...)
+	job := NewJob(p, output, options...)
 	var err error
 	for scanner.Scan(ctx) {
 		err = job.ProcessLine(ctx, scanner.Line())

@@ -32,7 +32,7 @@ func TestProcessor_CreatePlugin(t *testing.T) {
 	pl := &CreatePluginTest{}
 	p.RegisterPlugin(pl)
 
-	res := &ProcessResultArray{}
+	res := &OutputArray{}
 	err := p.Process(ctx, strings.NewReader(`line`), res)
 
 	assert.NoError(t, err)
@@ -50,7 +50,7 @@ func TestProcessor_CreatePlugin_LineProvider(t *testing.T) {
 	pl := &CreatePluginTest{}
 	p.RegisterPlugin(pl)
 
-	res := &ProcessResultArray{}
+	res := &OutputArray{}
 	err := p.ProcessProvider(ctx, NewStaticLineProvider([]interface{}{
 		InitItem(WithInitLine("line")),
 	}), res)
@@ -74,7 +74,7 @@ func TestProcessor_PostProcessOrder(t *testing.T) {
 	p.RegisterPlugin(&PostProcessPluginTest{1})
 	p.RegisterPlugin(&PostProcessPluginTest{7})
 
-	res := &ProcessResultArray{}
+	res := &OutputArray{}
 	err := p.Process(ctx, strings.NewReader(`line`), res)
 
 	assert.NoError(t, err)
