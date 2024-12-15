@@ -35,10 +35,10 @@ func WithIncludeSource(includeSource bool) JobOption {
 	}
 }
 
-// WithLogger sets a Log to be used for debugging.
-func WithLogger(logger Log) Option {
+// WithDebugLog sets a DebugLog to be used for debugging.
+func WithDebugLog(logger DebugLog) Option {
 	return func(p *Processor) {
-		p.Logger = logger
+		p.DebugLog = logger
 	}
 }
 

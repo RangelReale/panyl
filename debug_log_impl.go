@@ -10,25 +10,27 @@ import (
 	"github.com/RangelReale/panyl/v2/util"
 )
 
-// LogOutput writes log to the passed io.Writer
-type LogOutput struct {
+// DebugLogOutput writes log to the passed io.Writer
+type DebugLogOutput struct {
 	w             io.Writer
 	IncludeSource bool
 }
 
-func NewLogOutput(w io.Writer) *LogOutput {
-	return &LogOutput{w: w}
+// NewDebugLogOutput creates a DebugLogOutput using an io.Writer.
+func NewDebugLogOutput(w io.Writer) *DebugLogOutput {
+	return &DebugLogOutput{w: w}
 }
 
-func NewStdLogOutput() *LogOutput {
-	return &LogOutput{w: os.Stdout}
+// NewStdDebugLogOutput creates a DebugLogOutput using an os.StdOut.
+func NewStdDebugLogOutput() *DebugLogOutput {
+	return &DebugLogOutput{w: os.Stdout}
 }
 
-func (l LogOutput) LogSourceLine(ctx context.Context, n int, line, rawLine string) {
+func (l DebugLogOutput) LogSourceLine(ctx context.Context, n int, line, rawLine string) {
 	_, _ = fmt.Fprintf(l.w, "@@@ SOURCE LINE [%d]: '%s' @@@\n", n, line)
 }
 
-func (l LogOutput) LogProcess(ctx context.Context, p *Process) {
+func (l DebugLogOutput) LogProcess(ctx context.Context, p *Process) {
 	var lineno string
 	if p.LineCount > 1 {
 		lineno = fmt.Sprintf("[%d-%d]", p.LineNo, p.LineNo+p.LineCount-1)

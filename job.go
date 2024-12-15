@@ -72,7 +72,7 @@ func (p *Job) ProcessLine(ctx context.Context, line any) error {
 		process.LineNo = p.lineno
 		p.ensureProcess(process)
 
-		if p.processor.Logger != nil {
+		if p.processor.DebugLog != nil {
 			// encode source line for Logger
 			sourceLineBytes, err := json.Marshal(process.Data)
 			if err == nil {
@@ -97,9 +97,9 @@ func (p *Job) ProcessLine(ctx context.Context, line any) error {
 		return nil
 	}
 
-	// Log source line
-	if p.processor.Logger != nil {
-		p.processor.Logger.LogSourceLine(ctx, p.lineno, process.Line, sourceLine)
+	// DebugLog source line
+	if p.processor.DebugLog != nil {
+		p.processor.DebugLog.LogSourceLine(ctx, p.lineno, process.Line, sourceLine)
 	}
 
 	// PROCESS: Extract metadata
@@ -379,8 +379,8 @@ func (p *Job) internalOutputResult(ctx context.Context, process *Process, result
 		return time.Time{}, err
 	}
 
-	if p.processor.Logger != nil {
-		p.processor.Logger.LogProcess(ctx, process)
+	if p.processor.DebugLog != nil {
+		p.processor.DebugLog.LogProcess(ctx, process)
 	}
 	result.OnResult(ctx, process)
 

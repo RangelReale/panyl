@@ -19,7 +19,7 @@ type Processor struct {
 	pluginCreate      []PluginCreate
 	onJobFinished     []func(context.Context, *Job) error
 
-	Logger Log
+	DebugLog DebugLog
 }
 
 // NewProcessor sends lines to Job using a LineProvider.

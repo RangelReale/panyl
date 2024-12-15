@@ -49,7 +49,7 @@ func main() {
             &parse.NGINXErrorLog{},
         ),
         // may use a logger when debugging, it outputs each source line and parsed processes
-        // panyl.WithLogger(panyl.NewStdLogOutput()),
+        // panyl.WithDebugLog(panyl.NewStdDebugLogOutput()),
     )
 
     err := processor.Process(ctx, os.Stdin, &Output{}, panyl.WithLineLimit(0, 100))
