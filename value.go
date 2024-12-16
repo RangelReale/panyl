@@ -124,6 +124,9 @@ func (m MapValue) ListValueAdd(name string, value string) {
 	v, ok := m[name]
 	if ok {
 		switch vv := v.(type) {
+		case string:
+			m[name] = append([]string{vv}, value)
+			return
 		case []string:
 			// check duplicates
 			for _, vdup := range vv {
