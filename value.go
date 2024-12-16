@@ -1,6 +1,8 @@
 package panyl
 
-import "strconv"
+import (
+	"strconv"
+)
 
 // MapValue is a helper for handling map[string]any
 type MapValue map[string]any
@@ -109,6 +111,8 @@ func (m MapValue) ListValue(name string) []string {
 	v, ok := m[name]
 	if ok {
 		switch vv := v.(type) {
+		case string:
+			return []string{vv}
 		case []string:
 			return vv
 		}
