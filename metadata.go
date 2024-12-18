@@ -8,6 +8,7 @@ const (
 	MetadataTimestampCalculated = "ts_calc" // bool [whether the timestamp was calculated instead of present in the data]
 	MetadataMessage             = "message"
 	MetadataApplication         = "application"
+	MetadataApplicationSource   = "application_source"
 	MetadataClean               = "clean" // []string
 	MetadataCategory            = "category"
 	MetadataOriginalCategory    = "original_category" // [if a plugin changed a category, it can store the original here]
