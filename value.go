@@ -12,6 +12,15 @@ func (m MapValue) HasValue(name string) bool {
 	return ok
 }
 
+func (m MapValue) HasValues(name ...string) bool {
+	for _, n := range name {
+		if !m.HasValue(n) {
+			return false
+		}
+	}
+	return true
+}
+
 func (m MapValue) StringValue(name string) string {
 	v, ok := m[name]
 	if ok {
@@ -105,6 +114,17 @@ func (m MapValue) BoolValue(name string) bool {
 		}
 	}
 	return false
+}
+
+func (m MapValue) MapValue(name string) MapValue {
+	v, ok := m[name]
+	if ok {
+		switch vv := v.(type) {
+		case map[string]any:
+			return vv
+		}
+	}
+	return nil
 }
 
 func (m MapValue) ListValue(name string) []string {
