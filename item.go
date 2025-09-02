@@ -88,22 +88,32 @@ func (p *Item) MergeLinesData(lines ItemLines) error {
 	return nil
 }
 
-/*
+func (p *Item) Clone() (*Item, error) {
+	item, err := p.CloneData()
+	if err != nil {
+		return nil, err
+	}
+	item.LineNo = p.LineNo
+	item.LineCount = p.LineCount
+	item.Source = p.Source
+	item.RawSource = p.RawSource
+	return item, nil
+}
+
 func (p *Item) CloneData() (*Item, error) {
 	ret := &Item{
 		Line:     p.Line,
-		Metadata: map[string]interface{}{},
-		Data:     map[string]interface{}{},
+		Metadata: map[string]any{},
+		Data:     map[string]any{},
 	}
 	if err := mergo.Map(&ret.Metadata, p.Metadata); err != nil {
-		return nil, fmt.Errorf("Error merging structs: %v", err)
+		return nil, fmt.Errorf("error merging structs: %w", err)
 	}
 	if err := mergo.Map(&ret.Data, p.Data); err != nil {
-		return nil, fmt.Errorf("Error merging structs: %v", err)
+		return nil, fmt.Errorf("error merging structs: %w", err)
 	}
 	return ret, nil
 }
-*/
 
 // ItemLines is a list of Item.
 type ItemLines []*Item

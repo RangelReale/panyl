@@ -355,9 +355,7 @@ func (p *Job) internalOutputItem(ctx context.Context, process *Item, output Outp
 					items, err = pp.CreateAfter(ctx, process)
 				}
 				if err != nil {
-					if err != nil {
-						return err
-					}
+					return err
 				}
 				for _, item := range items {
 					item.Metadata[MetadataCreated] = true

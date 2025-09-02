@@ -12,6 +12,7 @@ const (
 	MetadataClean               = "clean" // []string
 	MetadataCategory            = "category"
 	MetadataOriginalCategory    = "original_category" // [if a plugin changed a category, it can store the original here]
+	MetadataExtraCategories     = "extra_categories"  // a list of extra categories to log to
 	MetadataCreated             = "created"           // bool [whether the process was created instead of being in the log file]
 	MetadataSkip                = "skip"              // bool [if true, the line will be skipped]
 )
