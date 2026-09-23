@@ -3,7 +3,9 @@ package structure
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/RangelReale/panyl/v2"
@@ -20,14 +22,16 @@ var _ panyl.PluginStructure = JSON{}
 func (m JSON) ExtractStructure(ctx context.Context, lines panyl.ItemLines, item *panyl.Item) (bool, error) {
 	jdec := json.NewDecoder(strings.NewReader(lines.Line()))
 	jdata := map[string]interface{}{}
-	err := jdec.Decode(&jdata)
-	// check if the entire string was used
-	if err != nil || jdec.More() {
+	if err := jdec.Decode(&jdata); err != nil {
+		return false, nil
+	}
+	// check if the entire string was used, only whitespace may follow
+	if _, err := jdec.Token(); !errors.Is(err, io.EOF) {
 		return false, nil
 	}
 
 	// merge previous data and metadata
-	err = item.MergeLinesData(lines)
+	err := item.MergeLinesData(lines)
 	if err != nil {
 		return false, err
 	}

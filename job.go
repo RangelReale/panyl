@@ -52,10 +52,12 @@ func (p *Job) ProcessLine(ctx context.Context, line any) error {
 	p.lineno++
 
 	if p.LineAmount > 0 {
-		if p.lineno < p.StartLine {
+		// line numbers start at 1, so a StartLine below 1 means "from the first line"
+		startLine := max(p.StartLine, 1)
+		if p.lineno < startLine {
 			return nil
 		}
-		if p.lineno > p.StartLine+p.LineAmount {
+		if p.lineno >= startLine+p.LineAmount {
 			return ErrFinished
 		}
 	}
@@ -63,12 +65,14 @@ func (p *Job) ProcessLine(ctx context.Context, line any) error {
 	// read line from LineProvider
 	var sourceLine string
 	var process *Item
+	isItem := false
 	switch l := line.(type) {
 	case string:
 		process = p.initItem(p.lineno, l)
 		sourceLine = l
 	case *Item:
 		process = l
+		isItem = true
 		process.LineNo = p.lineno
 		p.ensureItem(process)
 
@@ -92,8 +96,8 @@ func (p *Job) ProcessLine(ctx context.Context, line any) error {
 
 	// PROCESS: Trim spaces
 	process.Line = strings.TrimSpace(process.Line)
-	// skip empty lines
-	if len(process.Line) == 0 {
+	// skip empty lines (structured items are kept if they carry any data)
+	if len(process.Line) == 0 && (!isItem || (len(process.Data) == 0 && len(process.Metadata) == 0)) {
 		return nil
 	}
 
@@ -162,8 +166,9 @@ structureloop:
 		}
 		if p.lastTime.IsZero() {
 			// try to get the timestamp from the processed line if time is Zero
-			if pts, ok := process.Metadata[MetadataTimestamp]; ok {
-				p.lastTime = pts.(time.Time)
+			// invalid types are reported by outputItem
+			if pts, ok := process.Metadata[MetadataTimestamp].(time.Time); ok {
+				p.lastTime = pts
 			}
 		}
 		// process previous lines
@@ -213,13 +218,14 @@ structureloop:
 	return nil
 }
 
+// Finish outputs any lines left in the backlog, then flushes and closes the output.
+// The output is always flushed and closed, even if processing the backlog fails.
 func (p *Job) Finish(ctx context.Context) error {
+	var err error
 	if len(p.lines) > 0 {
 		// process any lines left
-		_, err := p.processResultLines(ctx, p.lines, p.output, p.lastTime, p.sortedPluginPostProcess)
-		if err != nil {
-			return err
-		}
+		_, err = p.processResultLines(ctx, p.lines, p.output, p.lastTime, p.sortedPluginPostProcess)
+		p.lines = nil
 	}
 
 	// allows output flushing, like flushing network connections
@@ -228,7 +234,7 @@ func (p *Job) Finish(ctx context.Context) error {
 	// close the output.
 	p.output.OnClose(ctx)
 
-	return nil
+	return err
 }
 
 func (p *Job) initItem(lineno int, line string) *Item {
@@ -268,8 +274,9 @@ func (p *Job) processResultLines(ctx context.Context, lines ItemLines, output Ou
 			if ok, topLines, err := pc.Consolidate(ctx, lines[startLine:], consolidateProcess); err != nil {
 				return time.Time{}, err
 			} else if ok {
-				if topLines > len(lines)-startLine {
-					return time.Time{}, fmt.Errorf("Plugin requestd %d top lines but only %d are available", topLines, len(lines)-startLine)
+				if topLines < 1 || topLines > len(lines)-startLine {
+					return time.Time{}, fmt.Errorf("consolidate plugin requested %d top lines but only 1 to %d are allowed",
+						topLines, len(lines)-startLine)
 				}
 
 				consolidateProcess.LineCount = topLines
@@ -328,15 +335,17 @@ func (p *Job) internalOutputItem(ctx context.Context, process *Item, output Outp
 
 	retTime := lastTime
 	// check for timestamp in metadata, add the last one if not available
-	if _, ok := process.Metadata[MetadataTimestamp]; !ok {
+	if pts, ok := process.Metadata[MetadataTimestamp]; !ok {
 		if lastTime.IsZero() {
 			process.Metadata[MetadataTimestamp] = time.Now()
 		} else {
 			process.Metadata[MetadataTimestamp] = lastTime
 		}
 		process.Metadata[MetadataTimestampCalculated] = true
+	} else if ts, ok := pts.(time.Time); ok {
+		retTime = ts
 	} else {
-		retTime = process.Metadata[MetadataTimestamp].(time.Time)
+		return time.Time{}, fmt.Errorf("metadata %q must be a time.Time, got %T", MetadataTimestamp, pts)
 	}
 
 	if process.Metadata.BoolValue(MetadataSkip) {
@@ -358,12 +367,16 @@ func (p *Job) internalOutputItem(ctx context.Context, process *Item, output Outp
 					return err
 				}
 				for _, item := range items {
+					if item.Metadata == nil {
+						item.Metadata = MapValue{}
+					}
+					if item.Data == nil {
+						item.Data = MapValue{}
+					}
 					item.Metadata[MetadataCreated] = true
 					_, err = p.internalOutputItem(ctx, item, output, lastTime, false, sortedPluginPostProcess)
 					if err != nil {
-						if err != nil {
-							return err
-						}
+						return err
 					}
 				}
 			}

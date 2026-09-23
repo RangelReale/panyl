@@ -12,7 +12,8 @@ type Option func(p *Processor)
 
 type JobOption func(p *Job)
 
-// WithLineLimit outputs only starting from startLine up to the lineAmount amount of lines.
+// WithLineLimit processes only lineAmount lines, starting from line number startLine (1-based; values below 1
+// start from the first line). A lineAmount of 0 disables the limit.
 func WithLineLimit(startLine, lineAmount int) JobOption {
 	return func(p *Job) {
 		p.StartLine = startLine

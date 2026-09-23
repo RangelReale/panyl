@@ -1,6 +1,7 @@
 package panyl
 
 import (
+	"slices"
 	"strconv"
 )
 
@@ -120,6 +121,8 @@ func (m MapValue) MapValue(name string) MapValue {
 	v, ok := m[name]
 	if ok {
 		switch vv := v.(type) {
+		case MapValue:
+			return vv
 		case map[string]any:
 			return vv
 		}
@@ -127,6 +130,8 @@ func (m MapValue) MapValue(name string) MapValue {
 	return nil
 }
 
+// ListValue returns a list of strings. A single string value is returned as a one-element list, and non-string
+// elements of a []any list are ignored.
 func (m MapValue) ListValue(name string) []string {
 	v, ok := m[name]
 	if ok {
@@ -135,25 +140,34 @@ func (m MapValue) ListValue(name string) []string {
 			return []string{vv}
 		case []string:
 			return vv
+		case []any:
+			var ret []string
+			for _, item := range vv {
+				if s, ok := item.(string); ok {
+					ret = append(ret, s)
+				}
+			}
+			return ret
 		}
 	}
 	return nil
 }
 
+// ListValueAdd adds a string to a list value, if not already present.
 func (m MapValue) ListValueAdd(name string, value string) {
+	if m.ListValueContains(name, value) {
+		return
+	}
 	v, ok := m[name]
 	if ok {
 		switch vv := v.(type) {
 		case string:
-			m[name] = append([]string{vv}, value)
+			m[name] = []string{vv, value}
 			return
 		case []string:
-			// check duplicates
-			for _, vdup := range vv {
-				if vdup == value {
-					return
-				}
-			}
+			m[name] = append(vv, value)
+			return
+		case []any:
 			m[name] = append(vv, value)
 			return
 		}
@@ -161,17 +175,7 @@ func (m MapValue) ListValueAdd(name string, value string) {
 	m[name] = []string{value}
 }
 
+// ListValueContains returns whether a list value contains the string, using the same rules as ListValue.
 func (m MapValue) ListValueContains(name string, value string) bool {
-	v, ok := m[name]
-	if ok {
-		switch vv := v.(type) {
-		case []string:
-			for _, v := range vv {
-				if v == value {
-					return true
-				}
-			}
-		}
-	}
-	return false
+	return slices.Contains(m.ListValue(name), value)
 }

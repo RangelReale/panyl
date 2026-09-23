@@ -10,6 +10,9 @@ Severity: 🔴 bug with user-visible impact · 🟠 robustness / API issue · �
 
 ## 🔴 Bugs
 
+> **Status:** items 1 to 9 are fixed, with regression tests in `job_test.go`, `value_test.go` and
+> `plugins/structure/json_test.go`.
+
 ### 1. Structured `*Item` lines with only `Data` are silently dropped (verified)
 `job.go:93-98`: after the Clean plugins run, every item is dropped if `strings.TrimSpace(process.Line)` is empty.
 But `LineProvider.Line()` says of `*Item` lines: *"usually only Item.Data should be filled"*
