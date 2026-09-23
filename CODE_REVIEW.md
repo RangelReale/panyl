@@ -74,6 +74,10 @@ second `Decode` returns `io.EOF`. You could also check that `InputOffset()` plus
 
 ## 🟠 Robustness / API issues
 
+> **Status:** items 10 to 19 are fixed, with regression tests in `robustness_test.go` and
+> `plugins/structure/json_test.go`. For item 15, `UseNumber` is an opt-in field on `structure.JSON`, so existing
+> users keep `float64` numbers.
+
 10. **`Output.OnItem`'s `cont bool` result is ignored** (`job.go:383`). The interface suggests that an output
     can stop processing, but the return value is discarded. Either honor it (map `false` to `ErrFinished`) or
     remove it from the interface.

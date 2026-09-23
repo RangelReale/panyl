@@ -20,6 +20,8 @@ type Job struct {
 	lines                   ItemLines
 	sortedPluginPostProcess []PluginPostProcess
 	m                       sync.Mutex
+	outputStopped           bool // Output.OnItem returned false
+	finished                bool // Finish was called
 
 	StartLine       int
 	LineAmount      int
@@ -44,10 +46,16 @@ func NewJob(processor *Processor, output Output, options ...JobOption) *Job {
 	return ret
 }
 
-// ProcessLine adds a line to be processed. line can be `string` or `ProcessItem`.
+// ProcessLine adds a line to be processed. line can be `string` or `*Item`.
+// An `*Item` is copied, the passed instance is never modified.
+// Returns ErrFinished if the job was finished, or if the Output requested to stop.
 func (p *Job) ProcessLine(ctx context.Context, line any) error {
 	p.m.Lock()
 	defer p.m.Unlock()
+
+	if p.finished || p.outputStopped {
+		return ErrFinished
+	}
 
 	p.lineno++
 
@@ -71,7 +79,11 @@ func (p *Job) ProcessLine(ctx context.Context, line any) error {
 		process = p.initItem(p.lineno, l)
 		sourceLine = l
 	case *Item:
-		process = l
+		// copy the item so the caller's instance is not modified
+		process = &Item{}
+		*process = *l
+		process.Metadata = cloneMap(l.Metadata)
+		process.Data = cloneMap(l.Data)
 		isItem = true
 		process.LineNo = p.lineno
 		p.ensureItem(process)
@@ -84,6 +96,8 @@ func (p *Job) ProcessLine(ctx context.Context, line any) error {
 				sourceLine = string(sourceLineBytes)
 			}
 		}
+	default:
+		return fmt.Errorf("unsupported line type %T, must be string or *Item", line)
 	}
 
 	// PROCESS: Clean
@@ -125,6 +139,12 @@ func (p *Job) ProcessLine(ctx context.Context, line any) error {
 	lineProcessed := false
 	var lineFound int = -1
 
+	// changes made by plugins that don't match are discarded by restoring this snapshot
+	var snapshot itemSnapshot
+	if len(p.processor.pluginStructure) > 0 || len(p.processor.pluginParse) > 0 {
+		snapshot = newItemSnapshot(process)
+	}
+
 	// PROCESS: Extract structure from line
 	// loop bottom lines until a match is found
 structureloop:
@@ -138,6 +158,7 @@ structureloop:
 				// line structure can be found only once
 				break structureloop
 			}
+			snapshot.restore(process)
 		}
 	}
 
@@ -154,6 +175,7 @@ structureloop:
 					// line parser can be found only once
 					break lineloop
 				}
+				snapshot.restore(process)
 			}
 		}
 	}
@@ -173,7 +195,7 @@ structureloop:
 		}
 		// process previous lines
 		var err error
-		_, err = p.processResultLines(ctx, p.lines[:lineFound], p.output, p.lastTime, p.sortedPluginPostProcess)
+		p.lastTime, err = p.processResultLines(ctx, p.lines[:lineFound], p.output, p.lastTime, p.sortedPluginPostProcess)
 		if err != nil {
 			return err
 		}
@@ -220,13 +242,25 @@ structureloop:
 
 // Finish outputs any lines left in the backlog, then flushes and closes the output.
 // The output is always flushed and closed, even if processing the backlog fails.
+// The backlog is not output if the Output requested to stop. Calling Finish more than once does nothing.
 func (p *Job) Finish(ctx context.Context) error {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if p.finished {
+		return nil
+	}
+	p.finished = true
+
 	var err error
-	if len(p.lines) > 0 {
+	if len(p.lines) > 0 && !p.outputStopped {
 		// process any lines left
 		_, err = p.processResultLines(ctx, p.lines, p.output, p.lastTime, p.sortedPluginPostProcess)
-		p.lines = nil
+		if errors.Is(err, ErrFinished) {
+			err = nil
+		}
 	}
+	p.lines = nil
 
 	// allows output flushing, like flushing network connections
 	p.output.OnFlush(ctx)
@@ -323,7 +357,8 @@ func (p *Job) outputItem(ctx context.Context, process *Item, output Output, last
 	return p.internalOutputItem(ctx, process, output, lastTime, true, sortedPluginPostProcess)
 }
 
-// outputItem post-processes the Item and outputs the output.
+// internalOutputItem post-processes the Item and outputs the output.
+// Returns ErrFinished if the Output requested to stop.
 func (p *Job) internalOutputItem(ctx context.Context, process *Item, output Output, lastTime time.Time, create bool,
 	sortedPluginPostProcess []PluginPostProcess) (time.Time, error) {
 	for _, pp := range sortedPluginPostProcess {
@@ -374,7 +409,7 @@ func (p *Job) internalOutputItem(ctx context.Context, process *Item, output Outp
 						item.Data = MapValue{}
 					}
 					item.Metadata[MetadataCreated] = true
-					_, err = p.internalOutputItem(ctx, item, output, lastTime, false, sortedPluginPostProcess)
+					_, err = p.internalOutputItem(ctx, item, output, retTime, false, sortedPluginPostProcess)
 					if err != nil {
 						return err
 					}
@@ -393,7 +428,10 @@ func (p *Job) internalOutputItem(ctx context.Context, process *Item, output Outp
 	if p.processor.DebugLog != nil {
 		p.processor.DebugLog.LogItem(ctx, process)
 	}
-	output.OnItem(ctx, process)
+	if !output.OnItem(ctx, process) {
+		p.outputStopped = true
+		return time.Time{}, ErrFinished
+	}
 
 	// create Create plugin after outputting current item.
 	err = createFunc(false)

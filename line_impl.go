@@ -10,6 +10,7 @@ import (
 // ReaderLineProvider is a LineProvider that reads from an io.Reader
 type ReaderLineProvider struct {
 	scanner *bufio.Scanner
+	err     error
 }
 
 // NewReaderLineProvider is a LineProvider that reads from an io.Reader
@@ -24,6 +25,9 @@ func NewReaderLineProvider(r io.Reader, bufferSize int) LineProvider {
 }
 
 func (r *ReaderLineProvider) Err() error {
+	if r.err != nil {
+		return r.err
+	}
 	return r.scanner.Err()
 }
 
@@ -31,7 +35,12 @@ func (r *ReaderLineProvider) Line() interface{} {
 	return r.scanner.Text()
 }
 
+// Scan returns false if ctx is cancelled, setting Err to the context error. A blocked read is not interrupted.
 func (r *ReaderLineProvider) Scan(ctx context.Context) bool {
+	if err := ctx.Err(); err != nil {
+		r.err = err
+		return false
+	}
 	return r.scanner.Scan()
 }
 
@@ -63,8 +72,13 @@ func (r *StaticLineProvider) Line() interface{} {
 	return nil
 }
 
+// Scan returns false if ctx is cancelled, setting Err to the context error.
 func (r *StaticLineProvider) Scan(ctx context.Context) bool {
 	if r.err != nil {
+		return false
+	}
+	if err := ctx.Err(); err != nil {
+		r.err = err
 		return false
 	}
 

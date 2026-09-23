@@ -2,6 +2,7 @@ package panyl
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/imdario/mergo"
@@ -88,6 +89,8 @@ func (p *Item) MergeLinesData(lines ItemLines) error {
 	return nil
 }
 
+// Clone returns a deep copy of the Item. Nested maps and slices are copied, other values are shared.
+// The error result is always nil, and is kept for compatibility.
 func (p *Item) Clone() (*Item, error) {
 	item, err := p.CloneData()
 	if err != nil {
@@ -100,19 +103,66 @@ func (p *Item) Clone() (*Item, error) {
 	return item, nil
 }
 
+// CloneData returns a deep copy of the Item's Line, Metadata and Data. Nested maps and slices are copied, other
+// values are shared.
+// The error result is always nil, and is kept for compatibility.
 func (p *Item) CloneData() (*Item, error) {
-	ret := &Item{
+	return &Item{
 		Line:     p.Line,
-		Metadata: map[string]any{},
-		Data:     map[string]any{},
+		Metadata: cloneMap(p.Metadata),
+		Data:     cloneMap(p.Data),
+	}, nil
+}
+
+// cloneMap returns a deep copy of a map. It never returns nil.
+func cloneMap(m map[string]any) MapValue {
+	ret := make(MapValue, len(m))
+	for k, v := range m {
+		ret[k] = cloneValue(v)
 	}
-	if err := mergo.Map(&ret.Metadata, p.Metadata); err != nil {
-		return nil, fmt.Errorf("error merging structs: %w", err)
+	return ret
+}
+
+// cloneValue returns a deep copy of maps and slices, other values are returned as-is.
+func cloneValue(v any) any {
+	switch vv := v.(type) {
+	case MapValue:
+		return cloneMap(vv)
+	case map[string]any:
+		return map[string]any(cloneMap(vv))
+	case []any:
+		if vv == nil {
+			return vv
+		}
+		ret := make([]any, len(vv))
+		for i, item := range vv {
+			ret[i] = cloneValue(item)
+		}
+		return ret
+	case []string:
+		return slices.Clone(vv)
+	default:
+		return v
 	}
-	if err := mergo.Map(&ret.Data, p.Data); err != nil {
-		return nil, fmt.Errorf("error merging structs: %w", err)
-	}
-	return ret, nil
+}
+
+// itemSnapshot stores a copy of an Item, to be able to restore it later.
+type itemSnapshot struct {
+	item Item
+}
+
+func newItemSnapshot(item *Item) itemSnapshot {
+	s := itemSnapshot{item: *item}
+	s.item.Metadata = cloneMap(item.Metadata)
+	s.item.Data = cloneMap(item.Data)
+	return s
+}
+
+// restore sets the item to the state of the snapshot. The snapshot can be restored multiple times.
+func (s itemSnapshot) restore(item *Item) {
+	*item = s.item
+	item.Metadata = cloneMap(s.item.Metadata)
+	item.Data = cloneMap(s.item.Data)
 }
 
 // ItemLines is a list of Item.

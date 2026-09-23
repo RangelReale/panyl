@@ -1,6 +1,7 @@
 package panyl
 
 import (
+	"encoding/json"
 	"slices"
 	"strconv"
 )
@@ -61,6 +62,13 @@ func (m MapValue) IntValue(name string) int {
 			return int(vv)
 		case float64:
 			return int(vv)
+		case json.Number:
+			if i, err := vv.Int64(); err == nil {
+				return int(i)
+			}
+			if f, err := vv.Float64(); err == nil {
+				return int(f)
+			}
 		}
 	}
 	return 0
@@ -94,6 +102,10 @@ func (m MapValue) FloatValue(name string) float64 {
 			return float64(vv)
 		case uint64:
 			return float64(vv)
+		case json.Number:
+			if f, err := vv.Float64(); err == nil {
+				return f
+			}
 		}
 	}
 	return 0
@@ -165,10 +177,11 @@ func (m MapValue) ListValueAdd(name string, value string) {
 			m[name] = []string{vv, value}
 			return
 		case []string:
-			m[name] = append(vv, value)
+			// clip so a slice shared with another item (like a clone) is never modified
+			m[name] = append(slices.Clip(vv), value)
 			return
 		case []any:
-			m[name] = append(vv, value)
+			m[name] = append(slices.Clip(vv), value)
 			return
 		}
 	}

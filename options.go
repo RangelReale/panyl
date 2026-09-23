@@ -52,7 +52,8 @@ func WithPlugins(plugin ...Plugin) Option {
 	}
 }
 
-// WithOnJobFinished sets a callback to be called when a Job is about to finish.
+// WithOnJobFinished sets a callback to be called when a Job is about to finish. It is not called if processing
+// failed. Errors returned by the callbacks are returned by the Process functions.
 func WithOnJobFinished(f func(context.Context, *Job) error) Option {
 	return func(p *Processor) {
 		p.onJobFinished = append(p.onJobFinished, f)
