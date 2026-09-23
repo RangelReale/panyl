@@ -105,3 +105,10 @@ func TestMapValue_BoolValue(t *testing.T) {
 		assert.Equal(t, test.expected, MapValue{"v": test.value}.BoolValue("v"), "%T(%v)", test.value, test.value)
 	}
 }
+
+func TestMapValue_IntValueTypes(t *testing.T) {
+	for _, value := range []any{int8(7), int16(7), int32(7), int64(7), uint(7), uint8(7), uint16(7), uint32(7),
+		uint64(7), float32(7.9), 7.9, json.Number("7")} {
+		assert.Equal(t, 7, MapValue{"v": value}.IntValue("v"), "%T(%v)", value, value)
+	}
+}

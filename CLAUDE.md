@@ -11,6 +11,7 @@ Panyl ("Parse ANY Log") is a Go library (module `github.com/RangelReale/panyl/v2
 - Build: `go build ./...`
 - Test all: `go test ./...` (also `task test` via Taskfile)
 - Single test: `go test -run TestProcessor_CreatePlugin .`
+- Coverage: `go test -cover ./...`. End-to-end pipeline tests live in `pipeline_test.go` (external `panyl_test` package, so they can use the real plugins in `plugins/`); tests needing unexported internals are in `package panyl`.
 - CI (`.github/workflows`) runs `go build -v ./...` and `go test -v ./...` on Go 1.23. Releases are made by pushing a git tag (`task release-version VERSION=vX.Y.Z`), which triggers goreleaser.
 
 ## Architecture
