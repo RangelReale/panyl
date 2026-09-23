@@ -213,6 +213,7 @@ type PluginPostProcess interface {
 - line received from source: `process.Line` = line, `process.RawSource` = line
 - `PluginClean`: `process.Line` changes to be cleaned, like removing ANSI codes
 - `process.Line` is trimmed with `strings.TrimSpace`
+- empty lines are skipped (`*Item` lines are only skipped if `Data` and `Metadata` are also empty)
 - `PluginMetadata`: `process.Metadata` may be changed with extracted metadata (like application names in docker-compose logs), 
   `process.Line` may be changed removing the metadata information.
 - `process.Source` is set to the current `process.Line`
@@ -232,6 +233,7 @@ type PluginPostProcess interface {
 - `PluginCreate.CreateBefore`: can be used to create items based on the item about to be output, to be returned before it.
 - The processed item is returned to `Output`
 - `PluginCreate.CreateAfter`: can be used to create items based on the item about to be output, to be returned after it.
+- when the input ends, or processing stops with an error, any lines left are output and the `Output` is flushed and closed
 
 ## Author
 

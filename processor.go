@@ -72,9 +72,19 @@ func (p *Processor) Process(ctx context.Context, r io.Reader, output Output, opt
 func (p *Processor) ProcessProvider(ctx context.Context, scanner LineProvider, output Output,
 	options ...JobOption) error {
 	job := NewJob(p, output, options...)
-	var err error
+	err := p.processLines(ctx, job, scanner)
+	if err == nil {
+		for _, jobFinished := range p.onJobFinished {
+			_ = jobFinished(ctx, job)
+		}
+	}
+	// always finish the job, so the backlog is output and the output is flushed and closed even on errors.
+	return errors.Join(err, job.Finish(ctx))
+}
+
+func (p *Processor) processLines(ctx context.Context, job *Job, scanner LineProvider) error {
 	for scanner.Scan(ctx) {
-		err = job.ProcessLine(ctx, scanner.Line())
+		err := job.ProcessLine(ctx, scanner.Line())
 		if err != nil {
 			if errors.Is(err, ErrFinished) {
 				break
@@ -82,14 +92,5 @@ func (p *Processor) ProcessProvider(ctx context.Context, scanner LineProvider, o
 			return err
 		}
 	}
-
-	if err := scanner.Err(); err != nil {
-		return err
-	}
-
-	for _, jobFinished := range p.onJobFinished {
-		_ = jobFinished(ctx, job)
-	}
-
-	return job.Finish(ctx)
+	return scanner.Err()
 }
