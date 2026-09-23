@@ -129,7 +129,8 @@ type PluginMetadata interface {
 ```go
 // PluginStructure allows extracting structure from a line, for example, JSON or XML.
 // The full text must be a complete structure, partial match should not be supported.
-// You should take in account the lines Metdatada/Data and apply them to the item at your convenience.
+// You should take in account the lines Metadata/Data and apply them to the item at your convenience.
+// Changes made to item are discarded if false is returned. The lines must not be modified.
 type PluginStructure interface {
     ExtractStructure(ctx context.Context, lines ItemLines, item *Item) (bool, error)
 }
@@ -140,7 +141,8 @@ type PluginStructure interface {
 ```go
 // PluginParse allows parsing data from a line, for example, an Apache log format, a Ruby log format, etc.
 // The full text must be completely parsed, partial match should not be supported.
-// You should take in account the lines Metdatada/Data and apply them to the item at your convenience.
+// You should take in account the lines Metadata/Data and apply them to the item at your convenience.
+// Changes made to item are discarded if false is returned. The lines must not be modified.
 type PluginParse interface {
     ExtractParse(ctx context.Context, lines ItemLines, item *Item) (bool, error)
 }
@@ -172,8 +174,8 @@ type PluginConsolidate interface {
 
 ### ParseFormat
 
- ```go
-// PluginParseFormat is called for items that don't have Metadata_Format set, so it allows
+```go
+// PluginParseFormat is called for items that don't have MetadataFormat set, so it allows
 // detecting some format from a raw structure (JSON or XML), for example, detecting the Apache log format from
 // the parsed JSON data.
 type PluginParseFormat interface {
@@ -187,7 +189,7 @@ type PluginParseFormat interface {
 // PluginCreate allows creating process entries that are not present in the log file.
 // Use this to add custom log entries to the output.
 // This is called after PluginPostProcess, and PluginPostProcess is also called for each item.
-// Metadata_Created is set as true for items created by these functions.
+// MetadataCreated is set as true for items created by these functions.
 type PluginCreate interface {
     CreateBefore(ctx context.Context, item *Item) ([]*Item, error)
     CreateAfter(ctx context.Context, item *Item) ([]*Item, error)
@@ -200,8 +202,8 @@ type PluginCreate interface {
 // PluginPostProcess is called right before the data is returned to the user, so it allows to do any final
 // post-processing on the data.
 // Order determines in which order post process plugins execute, lower execute first than higher.
-// Use PostProcessOrder_Default as default. PostProcessOrder_First and PostProcessOrder_Last should be used
-// as limits.
+// Use PostProcessOrderDefault as default. PostProcessOrderFirst and PostProcessOrderLast should be used
+// as limits. Plugins with the same order run in registration order.
 type PluginPostProcess interface {
     PostProcessOrder() int
     PostProcess(ctx context.Context, item *Item) (bool, error)

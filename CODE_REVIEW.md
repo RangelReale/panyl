@@ -124,6 +124,15 @@ second `Decode` returns `io.EOF`. You could also check that `InputOffset()` plus
 
 ## 🟡 Minor / cleanup
 
+> **Status:** all fixed. The first four were already fixed with items 1 to 19. Notes on the rest:
+> - `DebugLogOutput` has a new `WithIncludeSource` method, and logs the raw line when it differs from the clean one.
+> - Post-process orders outside `0..10` are allowed and sorted normally. This is now documented instead of clamped,
+>   so existing plugins keep their order.
+> - `util.AnsiEscapeString` now returns the unchanged string when nothing was found. Callers that check the bool
+>   first are unaffected.
+> - Dependencies: `dario.cat/mergo v1.0.2`, `testify v1.12.1`.
+> - The README's remaining `Metadata_*` names and the plugin doc copies are also synced with the code.
+
 - `job.go:363-367`: the nested `if err != nil { if err != nil { ... } }` check is duplicated.
 - `job.go:319`: the doc comment on `internalOutputItem` says `outputItem`.
 - `processor.go:65`: the doc comment on `Process` says "Item reads lines from an [io.Reander]", which has two typos.
@@ -147,6 +156,16 @@ second `Decode` returns `io.EOF`. You could also check that `InputOffset()` plus
 ---
 
 ## ⚡ Performance
+
+> **Status:** fixed. `BenchmarkJSON_Processor` (`plugins/structure/json_bench_test.go`: 200 plain lines with some
+> single and multi-line JSON) went from about 2.5 ms, 3.06 MB and 21,733 allocations per run to about 0.34 ms, 0.27 MB
+> and 2,959 allocations:
+> - `structure.JSON` rejects lines that can't be a JSON object before joining or decoding.
+> - `ItemLines.Line()` and `Source()` return a single line without allocating, and join multiple lines with one
+>   allocation. Caching joined suffixes was not needed after this.
+> - Profiling found two more costs, both now fixed: `NewReaderLineProvider` allocated the full 1 MB scanner buffer on
+>   every `Process` call (it now starts small and grows), and the snapshot restore from item 14 allocated new maps even
+>   when they were empty and unchanged.
 
 For every unmatched line, the job tries every Structure and Parse plugin against every backlog suffix, up to
 `MaxBacklogLines` = 50. Each attempt rebuilds the joined string (`lines.Line()`) and, for `structure.JSON`, runs

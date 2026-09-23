@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/imdario/mergo"
+	"dario.cat/mergo"
 )
 
 // Item is the result of parsing one or more lines
@@ -70,10 +70,10 @@ func WithInitCustom(f func(*Item)) InitItemOption {
 
 func (p *Item) mergeData(other *Item) error {
 	if err := mergo.Map(&p.Metadata, other.Metadata); err != nil {
-		return fmt.Errorf("Error merging structs: %v", err)
+		return fmt.Errorf("error merging metadata: %w", err)
 	}
 	if err := mergo.Map(&p.Data, other.Data); err != nil {
-		return fmt.Errorf("Error merging structs: %v", err)
+		return fmt.Errorf("error merging data: %w", err)
 	}
 	return nil
 }
@@ -160,9 +160,18 @@ func newItemSnapshot(item *Item) itemSnapshot {
 
 // restore sets the item to the state of the snapshot. The snapshot can be restored multiple times.
 func (s itemSnapshot) restore(item *Item) {
+	metadata, data := item.Metadata, item.Data
 	*item = s.item
-	item.Metadata = cloneMap(s.item.Metadata)
-	item.Data = cloneMap(s.item.Data)
+	item.Metadata = restoreMap(metadata, s.item.Metadata)
+	item.Data = restoreMap(data, s.item.Data)
+}
+
+// restoreMap returns a copy of saved. If both maps are empty, current is reused to avoid an allocation.
+func restoreMap(current, saved MapValue) MapValue {
+	if len(saved) == 0 && current != nil && len(current) == 0 {
+		return current
+	}
+	return cloneMap(saved)
 }
 
 // ItemLines is a list of Item.
@@ -179,7 +188,7 @@ func (pl ItemLines) Lines() []string {
 
 // Line returns a list of all lines from each Item joined with "\n".
 func (pl ItemLines) Line() string {
-	return strings.Join(pl.Lines(), "\n")
+	return joinLines(pl, func(p *Item) string { return p.Line })
 }
 
 // Sources returns a list of all sources from each Item.
@@ -193,5 +202,28 @@ func (pl ItemLines) Sources() []string {
 
 // Source returns a list of all sources from each Item joined with "\n".
 func (pl ItemLines) Source() string {
-	return strings.Join(pl.Sources(), "\n")
+	return joinLines(pl, func(p *Item) string { return p.Source })
+}
+
+// joinLines joins a field of each Item with "\n". A single line is returned without allocating.
+func joinLines(pl ItemLines, f func(*Item) string) string {
+	switch len(pl) {
+	case 0:
+		return ""
+	case 1:
+		return f(pl[0])
+	}
+	n := len(pl) - 1
+	for _, p := range pl {
+		n += len(f(p))
+	}
+	var sb strings.Builder
+	sb.Grow(n)
+	for i, p := range pl {
+		if i > 0 {
+			sb.WriteByte('\n')
+		}
+		sb.WriteString(f(p))
+	}
+	return sb.String()
 }

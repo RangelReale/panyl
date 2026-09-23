@@ -31,7 +31,7 @@ func TestLineProvider_IoReader(t *testing.T) {
 func TestLineProvider_Static(t *testing.T) {
 	ctx := context.Background()
 
-	lp := NewStaticLineProvider([]interface{}{"first", "second", "third"})
+	lp := NewStaticLineProvider([]any{"first", "second", "third"})
 	ct := 0
 	for lp.Scan(ctx) {
 		switch ct {

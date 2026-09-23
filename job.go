@@ -1,11 +1,12 @@
 package panyl
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -274,8 +275,8 @@ func (p *Job) Finish(ctx context.Context) error {
 func (p *Job) initItem(lineno int, line string) *Item {
 	ret := &Item{
 		LineNo:   lineno,
-		Metadata: map[string]interface{}{},
-		Data:     map[string]interface{}{},
+		Metadata: map[string]any{},
+		Data:     map[string]any{},
 		Line:     line,
 	}
 	if p.IncludeSource {
@@ -286,10 +287,10 @@ func (p *Job) initItem(lineno int, line string) *Item {
 
 func (p *Job) ensureItem(process *Item) {
 	if process.Metadata == nil {
-		process.Metadata = map[string]interface{}{}
+		process.Metadata = map[string]any{}
 	}
 	if process.Data == nil {
-		process.Data = map[string]interface{}{}
+		process.Data = map[string]any{}
 	}
 	if !p.IncludeSource {
 		process.RawSource = ""
@@ -442,26 +443,12 @@ func (p *Job) internalOutputItem(ctx context.Context, process *Item, output Outp
 	return retTime, nil
 }
 
+// getSortedPluginPostProcess returns the PostProcess plugins sorted by PostProcessOrder. Plugins with the same order
+// keep the registration order.
 func getSortedPluginPostProcess(processor *Processor) []PluginPostProcess {
-	orderPlugins := map[int][]PluginPostProcess{}
-	var orderList []int
-
-	for _, plugin := range processor.pluginPostProcess {
-		order := plugin.PostProcessOrder()
-		if _, ok := orderPlugins[order]; !ok {
-			orderPlugins[order] = []PluginPostProcess{}
-			orderList = append(orderList, order)
-		}
-		orderPlugins[order] = append(orderPlugins[order], plugin)
-	}
-
-	sort.Ints(orderList)
-
-	var ret []PluginPostProcess
-	for _, order := range orderList {
-		for _, plugin := range orderPlugins[order] {
-			ret = append(ret, plugin)
-		}
-	}
+	ret := slices.Clone(processor.pluginPostProcess)
+	slices.SortStableFunc(ret, func(a, b PluginPostProcess) int {
+		return cmp.Compare(a.PostProcessOrder(), b.PostProcessOrder())
+	})
 	return ret
 }

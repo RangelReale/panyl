@@ -8,16 +8,18 @@ import (
 type slogContextKey string
 
 const (
-	// LoggerCtxKey is the string used to extract logger
+	// slogLoggerCtxKey is the context key used to store the logger
 	slogLoggerCtxKey slogContextKey = "logger"
 )
 
 var emptySLogger *slog.Logger
 
+// SLogToContext returns a context that carries the logger.
 func SLogToContext(ctx context.Context, logger *slog.Logger) context.Context {
 	return context.WithValue(ctx, slogLoggerCtxKey, logger)
 }
 
+// SLogFromContext returns the logger stored by SLogToContext, or a logger that discards everything.
 func SLogFromContext(ctx context.Context) *slog.Logger {
 	v, ok := ctx.Value(slogLoggerCtxKey).(*slog.Logger)
 	if ok {

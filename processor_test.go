@@ -51,7 +51,7 @@ func TestProcessor_CreatePlugin_LineProvider(t *testing.T) {
 	p.RegisterPlugin(pl)
 
 	res := &OutputArray{}
-	err := p.ProcessProvider(ctx, NewStaticLineProvider([]interface{}{
+	err := p.ProcessProvider(ctx, NewStaticLineProvider([]any{
 		InitItem(WithInitLine("line")),
 	}), res)
 
@@ -81,6 +81,22 @@ func TestProcessor_PostProcessOrder(t *testing.T) {
 
 	assert.Len(t, res.List, 1)
 	assert.Equal(t, res.List[0].Line, "line_1_2_5_7_7_10")
+}
+
+func TestProcessor_PostProcessOrderOutOfRange(t *testing.T) {
+	ctx := context.Background()
+
+	p := NewProcessor()
+	p.RegisterPlugin(&PostProcessPluginTest{20})
+	p.RegisterPlugin(&PostProcessPluginTest{5})
+	p.RegisterPlugin(&PostProcessPluginTest{-1})
+
+	res := &OutputArray{}
+	err := p.Process(ctx, strings.NewReader(`line`), res)
+
+	assert.NoError(t, err)
+	assert.Len(t, res.List, 1)
+	assert.Equal(t, "line_-1_5_20", res.List[0].Line)
 }
 
 // AllPlugins
