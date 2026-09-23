@@ -17,8 +17,8 @@ type ReaderLineProvider struct {
 func NewReaderLineProvider(r io.Reader, bufferSize int) LineProvider {
 	scanner := bufio.NewScanner(r)
 	if bufferSize > 0 {
-		// adjust the scanner capacity
-		buf := make([]byte, bufferSize)
+		// adjust the scanner maximum capacity, the buffer starts small and grows as needed
+		buf := make([]byte, 0, min(bufferSize, bufio.MaxScanTokenSize))
 		scanner.Buffer(buf, bufferSize)
 	}
 	return &ReaderLineProvider{scanner: scanner}
@@ -31,7 +31,7 @@ func (r *ReaderLineProvider) Err() error {
 	return r.scanner.Err()
 }
 
-func (r *ReaderLineProvider) Line() interface{} {
+func (r *ReaderLineProvider) Line() any {
 	return r.scanner.Text()
 }
 
@@ -47,12 +47,12 @@ func (r *ReaderLineProvider) Scan(ctx context.Context) bool {
 // StaticLineProvider is a LineProvider that reads from a memory array
 type StaticLineProvider struct {
 	currentLine int
-	lines       []interface{}
+	lines       []any
 	err         error
 }
 
 // NewStaticLineProvider is a LineProvider that reads from a memory array
-func NewStaticLineProvider(lines []interface{}) LineProvider {
+func NewStaticLineProvider(lines []any) LineProvider {
 	return &StaticLineProvider{currentLine: -1, lines: lines, err: nil}
 }
 
@@ -60,7 +60,7 @@ func (r *StaticLineProvider) Err() error {
 	return r.err
 }
 
-func (r *StaticLineProvider) Line() interface{} {
+func (r *StaticLineProvider) Line() any {
 	if r.err != nil {
 		return nil
 	}

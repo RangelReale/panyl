@@ -2,6 +2,8 @@ package panyl
 
 import "context"
 
+// Recommended range for PluginPostProcess.PostProcessOrder. Values outside the range are allowed, and are sorted
+// normally.
 const (
 	PostProcessOrderFirst   = 0
 	PostProcessOrderLast    = 10

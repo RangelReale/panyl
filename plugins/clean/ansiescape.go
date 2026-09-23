@@ -8,7 +8,7 @@ import (
 )
 
 // AnsiEscape implements PluginClean to remove ansi-escapes from the line
-// it adds a Metadata_Clean metadata with value MetadataClean_AnsiEscape
+// It adds MetadataCleanAnsiEscape to the MetadataClean metadata list.
 type AnsiEscape struct {
 }
 

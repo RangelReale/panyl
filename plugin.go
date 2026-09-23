@@ -80,7 +80,7 @@ type PluginCreate interface {
 // post-processing on the data.
 // Order determines in which order post process plugins execute, lower execute first than higher.
 // Use PostProcessOrderDefault as default. PostProcessOrderFirst and PostProcessOrderLast should be used
-// as limits.
+// as limits. Plugins with the same order run in registration order.
 type PluginPostProcess interface {
 	Plugin
 	PostProcessOrder() int

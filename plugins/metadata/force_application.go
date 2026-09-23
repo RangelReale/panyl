@@ -6,7 +6,7 @@ import (
 	"github.com/RangelReale/panyl/v2"
 )
 
-// ForceApplication adds a Metadata_Application to the process metadata if it isn't set already.
+// ForceApplication adds MetadataApplication to the process metadata if it isn't set already.
 // It also blocks the sequence if the application changes.
 type ForceApplication struct {
 	Application string
