@@ -62,7 +62,8 @@ func (p *Processor) RegisterPlugin(plugin Plugin) {
 	}
 }
 
-// Item reads lines from an [io.Reander] until it returns [io.EOF], sending the items found to Output.
+// Process reads lines from an [io.Reader] until it returns [io.EOF], sending the items found to Output.
+// Processing stops when ctx is cancelled, but a blocked read on r is not interrupted.
 func (p *Processor) Process(ctx context.Context, r io.Reader, output Output, options ...JobOption) error {
 	return p.ProcessProvider(ctx, NewReaderLineProvider(r, DefaultScannerBufferSize), output, options...)
 }
@@ -75,7 +76,7 @@ func (p *Processor) ProcessProvider(ctx context.Context, scanner LineProvider, o
 	err := p.processLines(ctx, job, scanner)
 	if err == nil {
 		for _, jobFinished := range p.onJobFinished {
-			_ = jobFinished(ctx, job)
+			err = errors.Join(err, jobFinished(ctx, job))
 		}
 	}
 	// always finish the job, so the backlog is output and the output is flushed and closed even on errors.
@@ -83,7 +84,14 @@ func (p *Processor) ProcessProvider(ctx context.Context, scanner LineProvider, o
 }
 
 func (p *Processor) processLines(ctx context.Context, job *Job, scanner LineProvider) error {
-	for scanner.Scan(ctx) {
+	for {
+		// stop if the context was cancelled
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if !scanner.Scan(ctx) {
+			break
+		}
 		err := job.ProcessLine(ctx, scanner.Line())
 		if err != nil {
 			if errors.Is(err, ErrFinished) {

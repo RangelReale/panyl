@@ -210,7 +210,7 @@ type PluginPostProcess interface {
 
 ## Plugin execution order
 
-- line received from source: `process.Line` = line, `process.RawSource` = line
+- line received from source: `process.Line` = line, `process.RawSource` = line (an `*Item` line is copied, the source instance is not modified)
 - `PluginClean`: `process.Line` changes to be cleaned, like removing ANSI codes
 - `process.Line` is trimmed with `strings.TrimSpace`
 - empty lines are skipped (`*Item` lines are only skipped if `Data` and `Metadata` are also empty)
@@ -218,7 +218,8 @@ type PluginPostProcess interface {
   `process.Line` may be changed removing the metadata information.
 - `process.Source` is set to the current `process.Line`
 - add current line to a list of unprocessed lines to support multiline parsing
-- `PluginStructure`: may extract structured data (like JSON) to `process.Metadata` and/or `process.Data` from the list of lines
+- `PluginStructure`: may extract structured data (like JSON) to `process.Metadata` and/or `process.Data` from the list of lines.
+  Changes made by a plugin that doesn't match are discarded, for this and for `PluginParse`.
 - `PluginParse`: may detect data and/or metadata from line-based formats (like Apache logs)
 - `PluginSequence`: if no known format was found, sequence plugins can check for sequence breaks, like docker-compose logs
   having the application name changed
@@ -231,9 +232,10 @@ type PluginPostProcess interface {
 - if `MetadataTimestamp` was not set, a timestamp is derived from the timestamp of the last sent record, if available
 - if `MetadataSkip` is set to true, the record is not sent to the output and is discarded
 - `PluginCreate.CreateBefore`: can be used to create items based on the item about to be output, to be returned before it.
-- The processed item is returned to `Output`
+- The processed item is returned to `Output`. If `OnItem` returns false, processing stops and no more items are sent
 - `PluginCreate.CreateAfter`: can be used to create items based on the item about to be output, to be returned after it.
-- when the input ends, or processing stops with an error, any lines left are output and the `Output` is flushed and closed
+- when the input ends, or processing stops with an error or a cancelled context, any lines left are output and the `Output`
+  is flushed and closed
 
 ## Author
 

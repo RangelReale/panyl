@@ -46,3 +46,34 @@ func TestJSON_Multiline(t *testing.T) {
 	assert.Equal(t, 3, res.List[1].LineCount)
 	assert.Equal(t, panyl.MetadataStructureJSON, res.List[1].Metadata.StringValue(panyl.MetadataStructure))
 }
+
+func TestJSON_OverridesLineData(t *testing.T) {
+	item := panyl.InitItem(panyl.WithInitLine(`{"a":"json"}`), panyl.WithInitCustom(func(item *panyl.Item) {
+		item.Data["a"] = "line"
+		item.Data["b"] = "line"
+	}))
+	ok, err := structure.JSON{}.ExtractStructure(context.Background(), panyl.ItemLines{item}, item)
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.Equal(t, "json", item.Data.StringValue("a"))
+	assert.Equal(t, "line", item.Data.StringValue("b"))
+}
+
+func TestJSON_UseNumber(t *testing.T) {
+	const line = `{"id":9007199254740993,"f":1.5}`
+
+	item := panyl.InitItem(panyl.WithInitLine(line))
+	ok, err := structure.JSON{UseNumber: true}.ExtractStructure(context.Background(), panyl.ItemLines{item}, item)
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.Equal(t, 9007199254740993, item.Data.IntValue("id"))
+	assert.Equal(t, 1.5, item.Data.FloatValue("f"))
+	assert.Equal(t, 1, item.Data.IntValue("f"))
+
+	// default decodes as float64, and loses precision
+	item = panyl.InitItem(panyl.WithInitLine(line))
+	ok, err = structure.JSON{}.ExtractStructure(context.Background(), panyl.ItemLines{item}, item)
+	require.NoError(t, err)
+	require.True(t, ok)
+	assert.IsType(t, float64(0), item.Data["id"])
+}
