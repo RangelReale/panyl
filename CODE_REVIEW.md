@@ -178,6 +178,18 @@ Cheap improvements:
 
 ## 🧪 Test coverage
 
+> **Status:** fixed. Statement coverage went from 76.9% to 97.0% (the root package from 77.8% to 97.5%), and every
+> package now has tests.
+> - `pipeline_test.go` (external `panyl_test` package) runs the whole pipeline with the in-repo plugins: multi-line
+>   structures, consolidation, sequence breaks, `MaxBacklogLines`, `WithIncludeSource`, timestamp propagation,
+>   `MetadataSkip`, `PluginParseFormat` and the debug log.
+> - `errors_test.go` checks that an error from every plugin type is returned and the output is still closed.
+> - `plugins/clean`, `plugins/consolidate` and `plugins/metadata` have unit tests.
+> - The `MapValue` getters, `Item` helpers, `slog` helpers, line providers and output helpers are covered.
+> - Breaking the sequence check, the backlog limit, skip handling, multi-line `Source` or the `ParseFormat` condition in
+>   `job.go` makes these tests fail.
+> - What's left uncovered is mostly `mergo` error paths that can't be triggered with maps, and empty method bodies.
+
 Tests exist only for plugin registration, Create ordering, PostProcess ordering and the line providers. There are no
 tests for:
 - multi-line structure detection and backlog flushing (the core feature);
